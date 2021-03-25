@@ -1,13 +1,13 @@
 import logging.handlers
 
-from flask_module.config import FlaskConfig
+from flask_module.config import Config
 
 
 class FlaskLog:
     __flask_log = None
 
     def __init__(self):
-        _config = FlaskConfig()
+        _config = Config()
         flask_logger_name = _config.get_value('flask-log', 'flask_logger_name')
         flask_logger_format = _config.get_value('flask-log', 'flask_logger_format')
         flask_logger_level = logging.getLevelName(_config.get_value('flask-log', 'flask_logger_level'))
