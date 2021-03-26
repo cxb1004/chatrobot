@@ -14,6 +14,7 @@ from flask_module.config_blueprint import config_blueprint
 from flask_module.flask_app_config import FlaskAppConfig
 from flask_module.flask_log import FlaskLog
 from flask_module.config import Config
+from flask_module.utils import strToBool
 
 proj_config = None
 log = FlaskLog()
@@ -48,8 +49,8 @@ def init_app():
 def init_runserver():
     return Server(host=baseConfig.get_value('flask-runserver', 'host'),
                   port=baseConfig.get_value('flask-runserver', 'port'),
-                  use_debugger=bool(baseConfig.get_value('flask-runserver', 'use_debugger')),
-                  use_reloader=bool(baseConfig.get_value('flask-runserver', 'use_reloader')),
-                  threaded=bool(baseConfig.get_value('flask-runserver', 'threaded')),
-                  passthrough_errors=bool(baseConfig.get_value('flask-runserver', 'passthrough_errors'))
+                  use_debugger=strToBool(baseConfig.get_value('flask-runserver', 'use_debugger')),
+                  use_reloader=strToBool(baseConfig.get_value('flask-runserver', 'use_reloader')),
+                  threaded=strToBool(baseConfig.get_value('flask-runserver', 'threaded')),
+                  passthrough_errors=strToBool(baseConfig.get_value('flask-runserver', 'passthrough_errors'))
                   )

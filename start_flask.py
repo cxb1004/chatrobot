@@ -1,7 +1,7 @@
 # 系统包类
 from flask import redirect, url_for
 from flask_migrate import Migrate, MigrateCommand
-from flask_script import Manager
+from flask_script import Manager, Server
 
 from flask_module import init_app, db, init_runserver
 # 自定义的包类
@@ -23,6 +23,11 @@ def index():
 # 把flask app托管给Manager
 manager = Manager(app)
 
+# 从app的参数里面组装db所需的参数
+Migrate(app, db)
+# 添加数据迁移的命令到终端脚本工具中
+manager.add_command('db', MigrateCommand)
+
 '''
 设置runsever(以服务器方式运行)的默认参数，可以被命令行覆盖
      host: 服务器IP地址，0.0.0.0可以被外网访问
@@ -39,9 +44,9 @@ manager = Manager(app)
 manager.add_command('runserver', init_runserver())
 
 # 启用数据迁移工具
-Migrate(app, db)
-# 添加数据迁移的命令到终端脚本工具中
-manager.add_command('db', MigrateCommand)
+# Migrate(app, db)
+# # 添加数据迁移的命令到终端脚本工具中
+# manager.add_command('db', MigrateCommand)
 
 # 运行Flask Manager，启动web服务
 if __name__ == '__main__':

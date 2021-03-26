@@ -35,6 +35,7 @@ class Config:
             print("配置文件中没有该配置内容: section[" + section + "] option: " + option)
             raise e
 
+
 # 使用类全局变量
 # c1 = Config()
 # c2 = Config()
