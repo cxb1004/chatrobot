@@ -11,7 +11,7 @@ from flask_script import Server
 from flask_sqlalchemy import SQLAlchemy
 
 from flask_module.config_blueprint import config_blueprint
-from flask_module.flask_config import FlaskConfig
+from flask_module.flask_app_config import FlaskAppConfig
 from flask_module.flask_log import FlaskLog
 from flask_module.config import Config
 
@@ -20,17 +20,17 @@ log = FlaskLog()
 db = SQLAlchemy()
 baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
-baseConfig2 = FlaskConfig()
+flask_app_config = FlaskAppConfig()
 
 
 def init_app():
     log.info('Flask App is initialing...')
-    # """初始化创建Flask对象"""
+
+    # 初始化创建Flask对象
     app = Flask(__name__)
 
-
     # 直接从配置文件读取Flask App的相关参数
-    app.config.from_object(baseConfig2)
+    app.config.from_object(flask_app_config)
 
     # SQLAlchemy读取app里面的配置信息，对数据库进行初始化
     db.init_app(app)
