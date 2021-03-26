@@ -6,22 +6,29 @@
 3、数据库配置
 4、redis / kafka配置
 """
+import pymysql
 from flask import Flask
 from flask_script import Server
 from flask_sqlalchemy import SQLAlchemy
+# 必须要先运行，
+pymysql.install_as_MySQLdb()
 
+from flask_module.config import Config
 from flask_module.config_blueprint import config_blueprint
 from flask_module.flask_app_config import FlaskAppConfig
 from flask_module.flask_log import FlaskLog
-from flask_module.config import Config
 from flask_module.utils import strToBool
 
 proj_config = None
 log = FlaskLog()
-db = SQLAlchemy()
 baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
 flask_app_config = FlaskAppConfig()
+
+
+
+db = SQLAlchemy()
+from flask_module.db_blueprint import db_blueprint
 
 
 def init_app():
@@ -41,6 +48,7 @@ def init_app():
     """
     # 加载情感判断模块,设置前置域名为emotion
     app.register_blueprint(config_blueprint, url_prefix='/config')
+    app.register_blueprint(db_blueprint, url_prefix='/db')
 
     log.info('Flask App initial is done')
     return app
