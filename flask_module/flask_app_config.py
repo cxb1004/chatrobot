@@ -20,7 +20,7 @@ class FlaskAppConfig:
     JSONIFY_PRETTYPRINT_REGULAR = strToBool(cf.get_value('flask-app', 'JSONIFY_PRETTYPRINT_REGULAR'))
     JSONIFY_MIMETYPE = cf.get_value('flask-app', 'JSONIFY_MIMETYPE')
 
-    # 以下数据库配置
+    # 以下是主数据库配置
     SQLALCHEMY_DATABASE_URI = 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
         cf.get_value('flask-sqlalchemy', 'user'),
         cf.get_value('flask-sqlalchemy', 'password'),
@@ -36,4 +36,13 @@ class FlaskAppConfig:
     SQLALCHEMY_MAX_OVERFLOW = int(cf.get_value('flask-sqlalchemy', 'MAX_OVERFLOW'))
     SQLALCHEMY_ENGINE_OPTIONS: {}
     # 用于绑定多个数据库，配置方法参见：http://www.pythondoc.com/flask-sqlalchemy/binds.html#binds
-    # SQLALCHEMY_BINDS: None
+    SQLALCHEMY_BINDS = {
+        'history_talk': 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
+            cf.get_value('flask-sqlalchemy-talk', 'user'),
+            cf.get_value('flask-sqlalchemy-talk', 'password'),
+            cf.get_value('flask-sqlalchemy-talk', 'host'),
+            cf.get_value('flask-sqlalchemy-talk', 'port'),
+            cf.get_value('flask-sqlalchemy-talk', 'database')
+        )
+    }
+

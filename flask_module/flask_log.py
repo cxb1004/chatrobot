@@ -49,13 +49,13 @@ class FlaskLog:
         FlaskLog.__flask_log.debug(msg)
 
     @staticmethod
-    def warn(self, msg):
+    def warn(msg):
         FlaskLog.__flask_log.warning(msg)
 
     @staticmethod
-    def error(self, msg):
+    def error(msg):
         FlaskLog.__flask_log.error(msg)
 
     @staticmethod
-    def error_ex(self, msg):
+    def error_ex(msg):
         FlaskLog.__flask_log.exception(msg, exc_info=True)

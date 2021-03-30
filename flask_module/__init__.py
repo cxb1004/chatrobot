@@ -10,7 +10,9 @@ import pymysql
 from flask import Flask
 from flask_script import Server
 from flask_sqlalchemy import SQLAlchemy
-# 必须要先运行，
+
+# 【重要提示】如果运行出现ModuleNotFoundError: No module named 'MySQLdb'错误
+# 是需要flask_module.__init__.py文件里面运行pymysql.install_as_MySQLdb()
 pymysql.install_as_MySQLdb()
 
 from flask_module.config import Config
@@ -24,8 +26,6 @@ log = FlaskLog()
 baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
 flask_app_config = FlaskAppConfig()
-
-
 
 db = SQLAlchemy()
 from flask_module.db_blueprint import db_blueprint
