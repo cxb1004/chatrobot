@@ -16,7 +16,6 @@ from flask_sqlalchemy import SQLAlchemy
 pymysql.install_as_MySQLdb()
 
 from flask_module.config import Config
-from flask_module.config_blueprint import config_blueprint
 from flask_module.flask_app_config import FlaskAppConfig
 from flask_module.flask_log import FlaskLog
 from flask_module.utils import strToBool
@@ -27,8 +26,11 @@ baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
 flask_app_config = FlaskAppConfig()
 
+# 有用到数据库的模块，需要在初始化SQLAlchemy对象之后声明
 db = SQLAlchemy()
 from flask_module.db_blueprint import db_blueprint
+from flask_module.config_blueprint import config_blueprint
+from flask_module.robot_blueprint import robot_blueprint
 
 
 def init_app():
@@ -49,6 +51,7 @@ def init_app():
     # 加载情感判断模块,设置前置域名为emotion
     app.register_blueprint(config_blueprint, url_prefix='/config')
     app.register_blueprint(db_blueprint, url_prefix='/db')
+    app.register_blueprint(robot_blueprint, url_prefix='/robot')
 
     log.info('Flask App initial is done')
     return app
