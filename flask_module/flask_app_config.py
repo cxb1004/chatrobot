@@ -1,6 +1,7 @@
 from flask_module.config import Config
 from flask_module.utils import strToBool
 
+DATABASE_CONNECTION_STRING = 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'
 
 class FlaskAppConfig:
     cf = Config()
@@ -21,7 +22,7 @@ class FlaskAppConfig:
     JSONIFY_MIMETYPE = cf.get_value('flask-app', 'JSONIFY_MIMETYPE')
 
     # 以下是主数据库配置
-    SQLALCHEMY_DATABASE_URI = 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
+    SQLALCHEMY_DATABASE_URI = DATABASE_CONNECTION_STRING.format(
         cf.get_value('flask-sqlalchemy', 'user'),
         cf.get_value('flask-sqlalchemy', 'password'),
         cf.get_value('flask-sqlalchemy', 'host'),
@@ -37,12 +38,19 @@ class FlaskAppConfig:
     SQLALCHEMY_ENGINE_OPTIONS: {}
     # 用于绑定多个数据库，配置方法参见：http://www.pythondoc.com/flask-sqlalchemy/binds.html#binds
     SQLALCHEMY_BINDS = {
-        'history_talk': 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
+        'history_talk': DATABASE_CONNECTION_STRING.format(
             cf.get_value('flask-sqlalchemy-talk', 'user'),
             cf.get_value('flask-sqlalchemy-talk', 'password'),
             cf.get_value('flask-sqlalchemy-talk', 'host'),
             cf.get_value('flask-sqlalchemy-talk', 'port'),
             cf.get_value('flask-sqlalchemy-talk', 'database')
-        )
+        ),
+        'ccs': DATABASE_CONNECTION_STRING.format(
+            cf.get_value('flask-sqlalchemy-ccs', 'user'),
+            cf.get_value('flask-sqlalchemy-ccs', 'password'),
+            cf.get_value('flask-sqlalchemy-ccs', 'host'),
+            cf.get_value('flask-sqlalchemy-ccs', 'port'),
+            cf.get_value('flask-sqlalchemy-ccs', 'database')
+        ),
     }
 

@@ -32,7 +32,7 @@ def query(app=None, sql=None, params=None):
     conn = db.get_engine(app)
     statement = text(sql)
     db_result = conn.execute(statement, params)
-    data = queryToDict(db_result)
+    data = queryToDict(list(db_result))
     return data
 
 
