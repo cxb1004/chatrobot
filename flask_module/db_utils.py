@@ -2,8 +2,7 @@ import time
 from datetime import date as cdate
 from datetime import datetime as cdatetime
 
-from flask_sqlalchemy import Model
-from sqlalchemy import DateTime, Numeric, Date, Time, text
+from sqlalchemy import DateTime, Date, Time, text
 
 from flask_module import db
 
@@ -28,77 +27,53 @@ def getBindConnect(app=None, bind=None):
     return conn
 
 
-def query(app=None, sql=None, params=None):
+def queryBySQL(app=None, sql=None, params=None):
+    """
+    用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
+    :param app:使用app的默认数据库连接进行查询
+    :param sql:原生SQL
+    :param params: SQL使用的参数
+    :return:
+    """
     conn = db.get_engine(app)
     statement = text(sql)
     db_result = conn.execute(statement, params)
-    data = queryToDict(list(db_result))
+    data = dbResultToDict(list(db_result))
     return data
 
 
-def query_by_conn(conn=None, sql=None, params=None):
-    db_result = conn.execute(sql)
-    data = queryToDict(db_result)
-    return data
-
-
-def queryToDict(models):
-    """集合化查询结果"""
-    res = ''
-    if models is None:
-        return ""
-    if isinstance(models, list):
-        if len(models) == 0:
-            return ""
-        elif isinstance(models[0], Model):
-            lst = []
-            for model in models:
-                gen = model_to_dict(model)
-                dit = dict((g[0], g[1]) for g in gen)
-                lst.append(dit)
-            return lst
-        else:
-            res = result_to_dict(models)
-            return str(res)
-    else:
-        if isinstance(models, Model):
-            gen = model_to_dict(models)
-            dit = dict((g[0], g[1]) for g in gen)
-            return dit
-        else:
-            res = dict(zip(models.keys(), models))
-            find_datetime(res)
-            return str(res)
-
-
-def find_datetime(value):
-    for v in value:
-        if isinstance(value[v], cdatetime):
-            value[v] = convert_datetime(value[v])  # 这里原理类似，修改的字典对象，不用返回即可修改
-
-
-def result_to_dict(results):
+def dbResultToDict(result=None):
+    """
+    查询结果集转化为字典类型
+    :param result:
+    :return:
+    """
     # 当结果为result对象列表时，result有key()方法
-    res = [dict(zip(r.keys(), r)) for r in results]
+    res = [dict(zip(r.keys(), r)) for r in result]
     # 这里r为一个字典，对象传递直接改变字典属性
     for r in res:
         find_datetime(r)
     return res
 
 
-def model_to_dict(model):
-    # 这段来自于参考资源
-    for col in model.__table__.columns:
-        if isinstance(col.type, DateTime):
-            value = convert_datetime(getattr(model, col.name))
-        elif isinstance(col.type, Numeric):
-            value = float(getattr(model, col.name))
-        else:
-            value = getattr(model, col.name)
-        yield (col.name, value)
+def find_datetime(value):
+    """
+    把结果里面的日期时间值进行格式化
+    :param value:
+    :return:
+    """
+    for v in value:
+        if isinstance(value[v], cdatetime):
+            # 这里原理类似，修改的字典对象，不用返回即可修改
+            value[v] = convert_datetime(value[v])
 
 
 def convert_datetime(value):
+    """
+    根据值的类型，分别进行格式化操作
+    :param value:
+    :return:
+    """
     if value:
         if isinstance(value, (cdatetime, DateTime)):
             return value.strftime("%Y-%m-%d %H:%M:%S")
@@ -107,8 +82,9 @@ def convert_datetime(value):
         elif isinstance(value, (Time, time)):
             return value.strftime("%H:%M:%S")
     else:
-        return ""
+        return value
 
+# 留着备份
 # class db_utils(object):
 #
 #     def queryToDict(self, models):

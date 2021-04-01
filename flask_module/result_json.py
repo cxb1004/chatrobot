@@ -10,7 +10,7 @@ def return_success(data):
 
 
 def return_fail(errorMsg):
-    return_dict = {'code': CODE_SUCCES, 'info': errorMsg, 'data': ''}
+    return_dict = {'code': CODE_FAIL, 'info': errorMsg, 'data': ''}
     return jsonify(return_dict)
 
 

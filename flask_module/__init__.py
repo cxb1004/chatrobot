@@ -17,11 +17,10 @@ pymysql.install_as_MySQLdb()
 
 from flask_module.config import Config
 from flask_module.flask_app_config import FlaskAppConfig
-from flask_module.flask_log import FlaskLog
+from flask_module.log_manage import ManageLog
 from flask_module.utils import strToBool
 
 proj_config = None
-log = FlaskLog()
 baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
 flask_app_config = FlaskAppConfig()
@@ -32,9 +31,11 @@ from flask_module.db_blueprint import db_blueprint
 from flask_module.config_blueprint import config_blueprint
 from flask_module.robot_blueprint import robot_blueprint
 
+mlog = ManageLog()
+
 
 def init_app():
-    log.info('Flask App is initialing...')
+    mlog.info('Flask App is initialing...')
 
     # 初始化创建Flask对象
     app = Flask(__name__)
@@ -53,7 +54,7 @@ def init_app():
     app.register_blueprint(db_blueprint, url_prefix='/db')
     app.register_blueprint(robot_blueprint, url_prefix='/robot')
 
-    log.info('Flask App initial is done')
+    mlog.info('Flask App initial is done')
     return app
 
 
