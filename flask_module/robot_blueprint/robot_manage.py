@@ -4,8 +4,6 @@ from flask_module.db_utils import getConnect
 from flask_module.log_manage import ManageLog as mlog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
-from flask_module.robot_blueprint.Model.rbt_industry import Industry
-from flask_module.robot_blueprint.Model.rbt_robot import Robot
 from flask_module.robot_blueprint.constants import RobotConstants
 from flask_module.utils import isNullOrBlank, getUUID_1
 
