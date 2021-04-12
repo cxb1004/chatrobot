@@ -77,7 +77,7 @@ def create_company_robot():
     # 1、 验证参数
     if isNullOrBlank(company_id) or isNullOrBlank(company_name) or isNullOrBlank(industry_name) or isNullOrBlank(
             expired_date_txt):
-        return return_fail("参数参数缺失！")
+        return return_fail("参数缺失！")
     try:
         expired_date = strToDate(expired_date_txt)
     except Exception as ex:
@@ -184,3 +184,57 @@ def create_company_robot():
         executeBySQL(app=current_app, sql=sql, params=params)
         mlog.info('企业机器人创建成功：{}'.format(rbt_id))
         return return_success({'rbt_id': rbt_id})
+
+
+@robot_blueprint.route('/manager/getRobotListByCompany', methods=['POST'])
+def get_robot_list_by_company():
+    # 接收参数
+    company_id = request.form.get('company_id', type=int)
+    current_page = request.form.get('current_page', type=int)
+    per_page = request.form.get('per_page', type=int)
+
+    if isNullOrBlank(current_page) or isNullOrBlank(per_page):
+        return_fail('参数缺失！')
+
+    sql = '''select count(rbt_id) cnt from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null'''
+    params = {'company_id': company_id}
+    all_records = countBySQL(app=current_app, sql=sql, params=params)
+
+    maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
+
+    sql = '''select rbt_id, rbt_name, type, company_id, company_name, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
+    params = {'company_id': company_id, 'start': start, 'offset': offset}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+
+    return return_success(queryData)
+
+
+@robot_blueprint.route('/manager/getRobotList', methods=['POST'])
+def get_robot_list():
+    # 接收参数
+    current_page = request.form.get('current_page', type=int)
+    per_page = request.form.get('per_page', type=int)
+
+    if isNullOrBlank(current_page) or isNullOrBlank(per_page):
+        return_fail('参数缺失！')
+
+    sql = '''select count(rbt_id) cnt from ai_chatrobot.rbt_robot where deleted_at is null'''
+    all_records = countBySQL(app=current_app, sql=sql)
+
+    maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
+
+    sql = '''select rbt_id, rbt_name, type, company_id, company_name, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
+    params = {'start': start, 'offset': offset}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+
+    return return_success(queryData)
+
+
+@robot_blueprint.route('/manager/syncKnowledgeFull', methods=['POST'])
+def sync_knowledge_full():
+    return return_success('')
+
+
+@robot_blueprint.route('/manager/syncKnowledgePartial', methods=['POST'])
+def sync_knowledge_partial():
+    return return_success('')

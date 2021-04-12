@@ -54,6 +54,47 @@ def strToDate(txt):
     return rtn_date
     print(rtn_date, type(rtn_date))
 
-# txt = '2022-4-13'
-# d = strToDate(txt)
-# print(d, type(d))
+
+def calculatePageParameters(all_records, per_page, current_page):
+    """
+    计算翻页的参数
+    :param all_records: 记录总数
+    :param per_page: 每页条数
+    :param current_page: 当前页
+    :return:
+    """
+    start = 0
+    offset = 0
+    max_page = 1
+    if all_records == 0 or per_page == 0 or current_page < 1:
+        return start, offset, max_page
+
+    rest = all_records % per_page
+    page = all_records // per_page
+    if rest == 0:
+        # 如果可以整除，那么
+        max_page = page
+    else:
+        max_page = page + 1
+
+    if current_page < 1:
+        current_page = 1
+    if current_page > max_page:
+        current_page = max_page
+    start = (current_page - 1) * per_page
+
+    # 计算偏移量
+    if rest > 0 and current_page == max_page:
+        offset = rest
+    else:
+        offset = per_page
+
+    return max_page, start, offset
+
+
+# all_records = 100
+# per_page = 10
+# current_page = 1
+# print(calculatePageParameters(all_records=all_records, per_page=per_page, current_page=current_page))
+# current_page = 11
+# print(calculatePageParameters(all_records=all_records, per_page=per_page, current_page=current_page))
