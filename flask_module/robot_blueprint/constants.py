@@ -19,7 +19,15 @@ class RobotConstants:
     # =============机器人模型的类型=============
     # 模型为空（一般是机器人刚创建的时候）
     RBT_MODEL_STATUS_EMPTY = 0
-    # 
+    # 模型训练中
     RBT_MODEL_STATUS_TRAINING = 0
+    # 模型训练完成，测试中
     RBT_MODEL_STATUS_TEST = 0
+    # 模型
     RBT_MODEL_STATUS_DEPLOY = 0
+
+    # =============行业是否存在模型=============
+    # 存在
+    INDUSTRY_MODEL_EXIST = 1
+    # 不存在
+    INDUSTRY_MODEL_NO_EXIST = 0

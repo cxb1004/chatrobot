@@ -15,7 +15,7 @@ class FlaskAppConfig:
     PERMANENT_SESSION_LIFETIME = cf.get_value('flask-app', 'PERMANENT_SESSION_LIFETIME')
     APPLICATION_ROOT = cf.get_value('flask-app', 'APPLICATION_ROOT')
     SESSION_REFRESH_EACH_REQUEST = strToBool(cf.get_value('flask-app', 'SESSION_REFRESH_EACH_REQUEST'))
-    MAX_CONTENT_LENGTH = cf.get_value('flask-app', 'MAX_CONTENT_LENGTH')
+    MAX_CONTENT_LENGTH = int(cf.get_value('flask-app', 'MAX_CONTENT_LENGTH'))
     JSON_AS_ASCII = strToBool(cf.get_value('flask-app', 'JSON_AS_ASCII'))
     JSON_SORT_KEYS = strToBool(cf.get_value('flask-app', 'JSON_AS_ASCII'))
     JSONIFY_PRETTYPRINT_REGULAR = strToBool(cf.get_value('flask-app', 'JSONIFY_PRETTYPRINT_REGULAR'))

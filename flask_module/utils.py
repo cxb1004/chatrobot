@@ -1,3 +1,5 @@
+import datetime
+import time
 import uuid
 
 
@@ -33,7 +35,25 @@ def isNullOrBlank(txt):
     :param txt:
     :return:
     """
-    if txt is None or txt.strip()=='':
+    if txt is None or str(txt).strip() == '':
         return True
     else:
         return False
+
+
+def strToDate(txt):
+    """
+    把字符串转化成Date
+    :param txt:
+    :return:
+    """
+    fmt = '%Y-%m-%d'
+    time_tuple = time.strptime(txt, fmt)
+    year, month, day = time_tuple[:3]
+    rtn_date = datetime.date(year, month, day)
+    return rtn_date
+    print(rtn_date, type(rtn_date))
+
+# txt = '2022-4-13'
+# d = strToDate(txt)
+# print(d, type(d))

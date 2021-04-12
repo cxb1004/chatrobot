@@ -7,20 +7,11 @@ from sqlalchemy import DateTime, Date, Time, text
 from flask_module import db
 
 
-def getConnect(app=None):
-    """
-    开放获得connection对象，用于transaction操作
-    :param app:
-    :return:
-    """
-    conn = db.get_engine(app)
-    return conn
-
-
 def getBindConnect(app=None, bind=None):
     """
     开放获得connection对象，用于多数据库
-    :param app:
+    :param app: current_app
+    :param bind: 其他DB连接配置名
     :return:
     """
     conn = db.get_engine(app, bind)
@@ -40,6 +31,34 @@ def queryBySQL(app=None, sql=None, params=None):
     db_result = conn.execute(statement, params)
     data = dbResultToDict(list(db_result))
     return data
+
+
+def executeBySQL(app=None, sql=None, params=None):
+    """
+    用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
+    :param app:使用app的默认数据库连接进行查询
+    :param sql:原生SQL
+    :param params: SQL使用的参数
+    :return:
+    """
+    conn = db.get_engine(app)
+    statement = text(sql)
+    conn.execute(statement, params)
+
+
+def countBySQL(app=None, sql=None, params=None):
+    """
+    用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
+    :param app:使用app的默认数据库连接进行查询
+    :param sql:原生SQL
+    :param params: SQL使用的参数
+    :return:
+    """
+    conn = db.get_engine(app)
+    statement = text(sql)
+    db_result = conn.execute(statement, params)
+    data = dbResultToDict(list(db_result))
+    return int(data[0].get('cnt'))
 
 
 def dbResultToDict(result=None):
