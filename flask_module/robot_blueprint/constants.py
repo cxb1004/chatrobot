@@ -31,3 +31,9 @@ class RobotConstants:
     INDUSTRY_MODEL_EXIST = 1
     # 不存在
     INDUSTRY_MODEL_NO_EXIST = 0
+
+    # =============知识库中的知识，使用模型是否预测准确=============
+    # 模型预测失败
+    KNOWLEDGE_USE_MODEL_NO_PASS = 0
+    # 模型预测成功
+    KNOWLEDGE_USE_MODEL_PASS = 1

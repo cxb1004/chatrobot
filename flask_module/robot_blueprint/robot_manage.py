@@ -1,3 +1,5 @@
+import json
+
 from flask import current_app, request
 
 from flask_module.db_utils import *
@@ -230,8 +232,95 @@ def get_robot_list():
     return return_success(queryData)
 
 
-@robot_blueprint.route('/manager/syncKnowledgeFull', methods=['POST'])
-def sync_knowledge_full():
+@robot_blueprint.route('/manager/syncKnowledge', methods=['POST'])
+def sync_knowledge():
+    rbt_id = request.form.get('rbt_id', type=str)
+    is_overwrite = request.form.get('is_overwrite', type=int)
+    knowledges_str = request.form.get('data', type=str)
+
+    if isNullOrBlank(rbt_id) or isNullOrBlank(is_overwrite) or isNullOrBlank(knowledges_data):
+        return return_fail('参数缺失！')
+
+    # 如果需要重新整个知识库，需要先删除已有知识库内容
+    if is_overwrite == 1:
+        sql = '''delete from ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
+        params = {'rbt_id': rbt_id}
+        executeBySQL(app=current_app, sql=sql, params=params)
+        mlog.info('机器人【{}】的知识库清除成功'.format(rbt_id))
+
+    try:
+        knowledge_list_data = json.load(knowledges_str)
+    except Exception as ex:
+        errMsg = '知识库数据转化为json出错！'
+        mlog.error_ex(errMsg)
+        return return_fail(errMsg)
+
+    warnMsg = ''
+    for knowledge in knowledge_list_data:
+        id = knowledge.get('id')
+        company_id = knowledge.get('company_id')
+        question = knowledge.get('question')
+        answer = knowledge.get('answer')
+        category_id = knowledge.get('category_id')
+        parent_id = knowledge.get('parent_id')
+        action = knowledge.get('action')
+
+        if isNullOrBlank(answer):
+            answer = None
+        if isNullOrBlank(category_id):
+            category_id = None
+
+        # 如果company_id/question关键信息为空，报错，并跳过这个记录
+        if isNullOrBlank(company_id) or isNullOrBlank(question):
+            mlog.error('企业ID或问题数据缺失：{}'.format(knowledge))
+            warnMsg = warnMsg + '\n' + '企业ID或问题数据缺失：{}'.format(knowledge)
+            continue
+
+        if action == 'add':
+            sql = '''INSERT INTO ai_chatrobot.rbt_knowledge (id, company_id, rbt_id, question, answer, category_id, parent_id, use_model) VALUES (:id, :company_id, :rbt_id, :question, :answer, :category_id, :parent_id, :use_model)'''
+            params = {'id': id,
+                      'company_id': company_id,
+                      'rbt_id': rbt_id,
+                      'question': question,
+                      'answer': answer,
+                      'category_id': category_id,
+                      'parent_id': parent_id,
+                      'use_model': RobotConstants.KNOWLEDGE_USE_MODEL_NO_PASS
+                      }
+            result_count = executeBySQL(app=current_app, sql=sql, params=params)
+            if result_count == 1:
+                mlog.debug('新增知识成功：{}'.format(id))
+            else:
+                mlog.error('新增知识失败：{}'.format(id))
+            continue
+
+        elif action == 'update':
+            sql = '''UPDATE ai_chatrobot.rbt_knowledge SET question = :question, answer = :answer, category_id = :category_id, parent_id = :parent_id WHERE id = :id  '''
+            params = {
+                'question': question,
+                'answer': answer,
+                'category_id': category_id,
+                'parent_id': parent_id,
+                'id': id
+            }
+            result_count = executeBySQL(app=current_app, sql=sql, params=params)
+            if result_count == 1:
+                mlog.debug('修改知识成功：{}'.format(id))
+            else:
+                mlog.error('修改知识失败：{}'.format(id))
+            continue
+        elif action == 'delete':
+            id = knowledge.get('id')
+            sql = '''delete from ai_chatrobot.rbt_knowledge where id=:id'''
+            params = {'id': id}
+            executeBySQL(app=current_app, sql=sql, params=params)
+            mlog.debug('删除知识成功：{}'.format(id))
+            continue
+        else:
+            mlog.error('知识数据操作类型错误：{}'.format(knowledge))
+            warnMsg = warnMsg + '\n' + '知识数据操作类型错误：{}'.format(knowledge)
+            continue
+
     return return_success('')
 
 

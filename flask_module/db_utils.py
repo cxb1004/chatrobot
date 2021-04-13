@@ -39,11 +39,12 @@ def executeBySQL(app=None, sql=None, params=None):
     :param app:使用app的默认数据库连接进行查询
     :param sql:原生SQL
     :param params: SQL使用的参数
-    :return:
+    :return: 影响条数
     """
     conn = db.get_engine(app)
     statement = text(sql)
-    conn.execute(statement, params)
+    resultProxy = conn.execute(statement, params)
+    return resultProxy.rowcount
 
 
 def countBySQL(app=None, sql=None, params=None):
