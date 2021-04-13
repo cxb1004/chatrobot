@@ -69,13 +69,13 @@ def create_company_robot():
     """
     # 接收参数
     company_id = request.form.get('company_id', type=int)
-    company_name = request.form.get('company_name', type=str)
+    company_account = request.form.get('company_account', type=str)
     industry_name = request.form.get('industry_name', type=str)
     expired_date_txt = request.form.get('expired_date', type=str)
     rbt_name = request.form.get('rbt_name', type=str)
 
     # 1、 验证参数
-    if isNullOrBlank(company_id) or isNullOrBlank(company_name) or isNullOrBlank(industry_name) or isNullOrBlank(
+    if isNullOrBlank(company_id) or isNullOrBlank(company_account) or isNullOrBlank(industry_name) or isNullOrBlank(
             expired_date_txt):
         return return_fail("参数缺失！")
     try:
@@ -164,16 +164,16 @@ def create_company_robot():
         if isNullOrBlank(rbt_name):
             rbt_name = rbt_id
 
-        sql = '''INSERT INTO ai_chatrobot.rbt_robot (rbt_id, rbt_name, type, company_id, company_name, industry_id, 
+        sql = '''INSERT INTO ai_chatrobot.rbt_robot (rbt_id, rbt_name, type, company_id, company_account, industry_id, 
         industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at) 
-        VALUES (:rbt_id, :rbt_name, :type, :company_id, :company_name, :industry_id, :industry_name, :status, 
+        VALUES (:rbt_id, :rbt_name, :type, :company_id, :company_account, :industry_id, :industry_name, :status, 
         :model_status, :model_updated_at, :expired_at, now(), null, null)'''
         params = {
             'rbt_id': rbt_id,
             'rbt_name': rbt_name,
             'type': RobotConstants.RBT_TYPE_COMPANY,
             'company_id': company_id,
-            'company_name': company_name,
+            'company_account': company_account,
             'industry_id': industry_id,
             'industry_name': industry_name,
             'status': RobotConstants.RBT_STATUS_ON,
@@ -202,7 +202,7 @@ def get_robot_list_by_company():
 
     maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
 
-    sql = '''select rbt_id, rbt_name, type, company_id, company_name, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
+    sql = '''select rbt_id, rbt_name, type, company_id, company_account, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
     params = {'company_id': company_id, 'start': start, 'offset': offset}
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
@@ -223,7 +223,7 @@ def get_robot_list():
 
     maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
 
-    sql = '''select rbt_id, rbt_name, type, company_id, company_name, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
+    sql = '''select rbt_id, rbt_name, type, company_id, company_account, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
     params = {'start': start, 'offset': offset}
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
