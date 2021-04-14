@@ -22,6 +22,7 @@ def queryBySQL(app=None, sql=None, params=None):
     """
     用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
     :param app:使用app的默认数据库连接进行查询
+    :param conn:数据链接
     :param sql:原生SQL
     :param params: SQL使用的参数
     :return:
@@ -47,10 +48,24 @@ def executeBySQL(app=None, sql=None, params=None):
     return resultProxy.rowcount
 
 
+def executeBySession(sess=None, sql=None, params=None):
+    """
+    事务执行
+    :param sess:使用session控制事务
+    :param sql:原生SQL
+    :param params: SQL使用的参数
+    :return: 影响条数
+    """
+    statement = text(sql)
+    resultProxy = sess.execute(statement, params)
+    return resultProxy.rowcount
+
+
 def countBySQL(app=None, sql=None, params=None):
     """
     用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
     :param app:使用app的默认数据库连接进行查询
+    :param conn:数据库连接
     :param sql:原生SQL
     :param params: SQL使用的参数
     :return:

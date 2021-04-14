@@ -3,6 +3,7 @@ from flask_module.utils import strToBool
 
 DATABASE_CONNECTION_STRING = 'mysql://{}:{}@{}:{}/{}?charset=utf8mb4'
 
+
 class FlaskAppConfig:
     cf = Config()
 
@@ -53,4 +54,3 @@ class FlaskAppConfig:
             cf.get_value('flask-sqlalchemy-ccs', 'database')
         ),
     }
-
