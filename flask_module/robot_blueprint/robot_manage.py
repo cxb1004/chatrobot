@@ -267,7 +267,7 @@ def sync_knowledge():
         if is_overwrite == 1:
             sql = '''delete from ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
             params = {'rbt_id': rbt_id}
-            executeBySession(sess=session, sql=sql, params=params)
+            executeBySQL(sess=session, sql=sql, params=params)
             mlog.info('机器人【{}】的知识库清除成功'.format(rbt_id))
 
         for knowledge in knowledge_list_data:
@@ -301,7 +301,7 @@ def sync_knowledge():
                           'parent_id': parent_id,
                           'use_model': RobotConstants.KNOWLEDGE_USE_MODEL_NO_PASS
                           }
-                result_count = executeBySession(sess=session, sql=sql, params=params)
+                result_count = executeBySQL(sess=session, sql=sql, params=params)
                 if result_count == 1:
                     mlog.debug('新增知识成功：{}'.format(id))
                 else:
@@ -310,7 +310,7 @@ def sync_knowledge():
                     raise Exception(errMsg)
 
             elif action == 'update':
-                sql = '''UPDATE ai_chatrobot.rbt_knowledge SET question = :question, answer = :answer, category_id = :category_id, parent_id = :parent_id WHERE id = :id  '''
+                sql = '''UPDATE ai_chatrobot.rbt_knowledge SET question = :question, answer = :answer, category_id = :category_id, parent_id = :parent_id, use_model = 0 WHERE id = :id  '''
                 params = {
                     'question': question,
                     'answer': answer,
@@ -318,7 +318,7 @@ def sync_knowledge():
                     'parent_id': parent_id,
                     'id': id
                 }
-                result_count = executeBySession(sess=session, sql=sql, params=params)
+                result_count = executeBySQL(sess=session, sql=sql, params=params)
                 if result_count == 1:
                     mlog.debug('修改知识成功：{}'.format(id))
                 else:
@@ -327,22 +327,26 @@ def sync_knowledge():
                     raise Exception(errMsg)
 
             elif action == 'delete':
-                id = knowledge.get('id')
                 sql = '''delete from ai_chatrobot.rbt_knowledge where id=:id'''
                 params = {'id': id}
-                executeBySession(ses=session, sql=sql, params=params)
+                executeBySQL(sess=session, sql=sql, params=params)
                 mlog.debug('删除知识成功：{}'.format(id))
             else:
                 errMsg = '知识数据操作类型错误：{}'.format(knowledge)
                 mlog.error(errMsg)
                 raise Exception(errMsg)
+
+        # 更新知识库成功以后，立即在task表里面新增任务，机器人需要自动更新前置词库
+
+
         # 提交事务
         session.commit()
     except Exception as ex:
-        mlog.error_ex('erroor')
-        #回滚事务
+        errMsg = '知识库同步出错，数据已回滚，请联系系统管理员查看问题！'
+        mlog.error_ex(errMsg)
+        # 回滚事务
         session.rollback()
-        return return_fail(str(ex))
+        return return_fail(errMsg)
 
     return return_success('知识库同步完成!')
 

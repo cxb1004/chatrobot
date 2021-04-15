@@ -18,62 +18,65 @@ def getBindConnect(app=None, bind=None):
     return conn
 
 
-def queryBySQL(app=None, sql=None, params=None):
+def queryBySQL(app=None, sess=None, sql=None, params=None):
     """
     用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
     :param app:使用app的默认数据库连接进行查询
-    :param conn:数据链接
+    :param sess:使用session来控制事务
     :param sql:原生SQL
     :param params: SQL使用的参数
     :return:
     """
-    conn = db.get_engine(app)
-    statement = text(sql)
-    db_result = conn.execute(statement, params)
-    data = dbResultToDict(list(db_result))
+    if sess is None:
+        conn = db.get_engine(app)
+        statement = text(sql)
+        db_result = conn.execute(statement, params)
+        data = dbResultToDict(list(db_result))
+    else:
+        statement = text(sql)
+        db_result = sess.execute(statement, params)
+        data = dbResultToDict(list(db_result))
     return data
 
 
-def executeBySQL(app=None, sql=None, params=None):
+def executeBySQL(app=None, sess=None, sql=None, params=None):
     """
     用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
     :param app:使用app的默认数据库连接进行查询
+    :param sess:使用session来控制事务
     :param sql:原生SQL
     :param params: SQL使用的参数
     :return: 影响条数
     """
-    conn = db.get_engine(app)
-    statement = text(sql)
-    resultProxy = conn.execute(statement, params)
+    if sess is None:
+        conn = db.get_engine(app)
+        statement = text(sql)
+        resultProxy = conn.execute(statement, params)
+    else:
+        statement = text(sql)
+        resultProxy = sess.execute(statement, params)
     return resultProxy.rowcount
 
 
-def executeBySession(sess=None, sql=None, params=None):
-    """
-    事务执行
-    :param sess:使用session控制事务
-    :param sql:原生SQL
-    :param params: SQL使用的参数
-    :return: 影响条数
-    """
-    statement = text(sql)
-    resultProxy = sess.execute(statement, params)
-    return resultProxy.rowcount
-
-
-def countBySQL(app=None, sql=None, params=None):
+def countBySQL(app=None, sess=None, sql=None, params=None):
     """
     用原生SQL进行查询，查询完成以后，把结果集转化为字典列表，字典的key就是字段名
     :param app:使用app的默认数据库连接进行查询
-    :param conn:数据库连接
+    :param sess:数据库连接
     :param sql:原生SQL
     :param params: SQL使用的参数
     :return:
     """
-    conn = db.get_engine(app)
-    statement = text(sql)
-    db_result = conn.execute(statement, params)
-    data = dbResultToDict(list(db_result))
+    if sess is None:
+        conn = db.get_engine(app)
+        statement = text(sql)
+        db_result = conn.execute(statement, params)
+        data = dbResultToDict(list(db_result))
+    else:
+        statement = text(sql)
+        db_result = sess.execute(statement, params)
+        data = dbResultToDict(list(db_result))
+
     return int(data[0].get('cnt'))
 
 
