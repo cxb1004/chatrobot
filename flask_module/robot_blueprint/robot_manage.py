@@ -9,6 +9,7 @@ from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.constants import RobotConstants
 from flask_module.utils import *
+from flask_module.robot_blueprint.Model.rbt_task import *
 
 
 @robot_blueprint.route('/manager/getIndustryList', methods=['POST'])
@@ -262,6 +263,7 @@ def sync_knowledge():
     Session = sessionmaker(bind=conn)
     session = Session()
     session.begin()
+    companyID = None
     try:
         # 如果需要重新整个知识库，需要先删除已有知识库内容
         if is_overwrite == 1:
@@ -273,6 +275,7 @@ def sync_knowledge():
         for knowledge in knowledge_list_data:
             id = knowledge.get('data').get('id')
             company_id = knowledge.get('data').get('company_id')
+            companyID = company_id
             question = knowledge.get('data').get('question')
             answer = knowledge.get('data').get('answer')
             category_id = knowledge.get('data').get('category_id')
@@ -337,7 +340,7 @@ def sync_knowledge():
                 raise Exception(errMsg)
 
         # 更新知识库成功以后，立即在task表里面新增任务，机器人需要自动更新前置词库
-
+        createTask(sess=session, company_id=companyID, rbt_id=rbt_id, task_type=RobotTask.TYPE_SYNC_KNOWLEDGE)
 
         # 提交事务
         session.commit()
