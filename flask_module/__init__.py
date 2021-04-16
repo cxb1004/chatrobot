@@ -10,15 +10,16 @@ import pymysql
 from flask import Flask
 from flask_script import Server
 from flask_sqlalchemy import SQLAlchemy
-from apscheduler.schedulers.background import BackgroundScheduler,APScheduler
-from apscheduler.schedulers import APScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_apscheduler import APScheduler
 
 # 【重要提示】如果运行出现ModuleNotFoundError: No module named 'MySQLdb'错误
 # 是需要flask_module.__init__.py文件里面运行pymysql.install_as_MySQLdb()
 pymysql.install_as_MySQLdb()
 
 from flask_module.config import Config
-from flask_module.flask_app_config import FlaskAppConfig, FlaskScheduleConfig
+from flask_module.flask_app_config import FlaskAppConfig
+from flask_module.flask_schedule_config import FlaskScheduleConfig
 from flask_module.log_manage import ManageLog
 from flask_module.utils import strToBool
 
@@ -26,7 +27,6 @@ proj_config = None
 baseConfig = Config()
 # 使用配置文件里的数据，生成app的config对象
 flask_app_config = FlaskAppConfig()
-# 使用配置文件里的数据，生成app的计划任务对象
 flask_schedule_config = FlaskScheduleConfig()
 
 # 有用到数据库的模块，需要在初始化SQLAlchemy对象之后声明
@@ -46,11 +46,7 @@ def init_app():
 
     # 直接从配置文件读取Flask App的相关参数
     app.config.from_object(flask_app_config)
-
-    # 从配置文件中读取定时任务的配置
     app.config.from_object(flask_schedule_config)
-    # 同时指定时区,防止上下时区不一致
-    scheduler = APScheduler(BackgroundScheduler(timezone="Asia/Shanghai"))
 
     # SQLAlchemy读取app里面的配置信息，对数据库进行初始化
     db.init_app(app)

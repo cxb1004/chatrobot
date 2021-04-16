@@ -2,10 +2,10 @@
 from flask import redirect, url_for
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager, Server
+from flask_apscheduler import APScheduler
 
 from flask_module import init_app, db, init_runserver
 # 自定义的包类
-# from flask_app import init_app, db, environment
 from flask_module.config import Config
 
 # 初始化配置
@@ -19,7 +19,6 @@ app = init_app()
 def index():
     return redirect(url_for('config_blueprint.index'))
 
-
 # 把flask app托管给Manager
 manager = Manager(app)
 
@@ -27,6 +26,11 @@ manager = Manager(app)
 Migrate(app, db)
 # 添加数据迁移的命令到终端脚本工具中
 manager.add_command('db', MigrateCommand)
+
+# 从app里面读取相关配置，启动定时任务计划
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 '''
 设置runsever(以服务器方式运行)的默认参数，可以被命令行覆盖
@@ -51,3 +55,5 @@ manager.add_command('runserver', init_runserver())
 # 运行Flask Manager，启动web服务
 if __name__ == '__main__':
     manager.run()
+
+

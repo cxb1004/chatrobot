@@ -1,6 +1,7 @@
 import datetime
 import time
 import uuid
+from datetime import datetime
 
 
 def strToBool(txt):
@@ -91,6 +92,9 @@ def calculatePageParameters(all_records, per_page, current_page):
 
     return max_page, start, offset
 
+
+def heart_beat_job():
+    print(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
 
 # all_records = 100
 # per_page = 10
