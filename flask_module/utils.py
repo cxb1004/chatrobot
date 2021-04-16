@@ -1,7 +1,9 @@
 import datetime
 import time
 import uuid
-from datetime import datetime
+
+
+# from datetime import datetime
 
 
 def strToBool(txt):
@@ -94,11 +96,50 @@ def calculatePageParameters(all_records, per_page, current_page):
 
 
 def heart_beat_job():
-    print(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+    print(datetime.datetime.now())
 
-# all_records = 100
-# per_page = 10
-# current_page = 1
-# print(calculatePageParameters(all_records=all_records, per_page=per_page, current_page=current_page))
-# current_page = 11
-# print(calculatePageParameters(all_records=all_records, per_page=per_page, current_page=current_page))
+
+def getRobotUnloadTime(period=None):
+    """
+    生成机器人的自动卸载时间
+    :param period:秒数
+    :return:
+    """
+    if period is None:
+        unload_time = datetime.datetime.now()
+    else:
+        unload_time = datetime.datetime.now() + datetime.timedelta(seconds=period)
+    return unload_time
+
+
+def timeCompareWithNow(t):
+    """
+    比较当前时间和卸载时间，如果结果是小于1，就卸载
+    :param t:
+    :return:
+    """
+    current_time = datetime.datetime.now()
+    rtn = timeCompare(current_time, t)
+    return rtn
+
+
+def timeCompare(time1, time2):
+    """
+    比较两个时间， time1<time2 1
+    :param time1:
+    :param time2:
+    :return:
+    """
+    f1 = time1.time()
+    f2 = time2.time()
+    if f1 == f2:
+        return 0
+    elif f1 > f2:
+        return -1
+    elif f1 < f2:
+        return 1
+
+# time1 = datetime.datetime.now()
+# time.sleep(2)
+# time2 = datetime.datetime.now()
+# print(timeCompare(time1,time2))
