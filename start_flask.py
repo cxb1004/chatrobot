@@ -1,8 +1,8 @@
 # 系统包类
 from flask import redirect, url_for
-from flask_migrate import Migrate, MigrateCommand
-from flask_script import Manager, Server
 from flask_apscheduler import APScheduler
+from flask_migrate import Migrate, MigrateCommand
+from flask_script import Manager
 
 from flask_module import init_app, db, init_runserver
 # 自定义的包类
@@ -18,6 +18,7 @@ app = init_app()
 @app.route('/', methods=['GET', 'POST'])
 def index():
     return redirect(url_for('config_blueprint.index'))
+
 
 # 把flask app托管给Manager
 manager = Manager(app)
@@ -55,5 +56,3 @@ manager.add_command('runserver', init_runserver())
 # 运行Flask Manager，启动web服务
 if __name__ == '__main__':
     manager.run()
-
-

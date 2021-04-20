@@ -23,8 +23,8 @@ def load_robot():
     pass
 
 
-@robot_blueprint.route('/service/getRobotList', methods=['POST'])
-def get_robot_list():
+@robot_blueprint.route('/service/listRobots', methods=['POST'])
+def list_robots():
     """
     获得所有载入的机器人列表信息
     :return:

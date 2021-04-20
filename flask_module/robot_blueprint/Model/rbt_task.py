@@ -3,8 +3,14 @@ from flask_module.utils import *
 
 
 class RobotTask:
+    # 开始状态
     STATUS_INIT = 0
-    TYPE_SYNC_KNOWLEDGE = {'type': 1, 'task': '更新知识库'}
+    # 结束状态
+    STATUS_FINISH = 99
+    # 知识库更新，后续需要更新模型或语料库
+    TYPE_SYNC_KNOWLEDGE = {'type': 1, 'task': '更新知识库，模型更新'}
+    # 聚类分析
+    TYPE_CLUSTER_ANALYSIS = {'type': 2, 'task': '聚类分析任务'}
 
     def __init__(self):
         self.task_id = None
@@ -64,6 +70,24 @@ def getTaskList(app=None, sess=None):
     :param sess:
     :return:
     """
-    sql = '''SELECT rbt_task.task_id, rbt_task.task, rbt_task.type, rbt_task.company_id, rbt_task.rbt_id, rbt_task.status, rbt_task.comment, rbt_task.created_at, rbt_task.updated_at FROM ai_chatrobot.rbt_task order by updated_at desc, created_at desc'''
+    sql = ''''''
     query_data = queryBySQL(app=app, sess=sess, sql=sql)
     return query_data
+
+
+def checkUnFinishedTaskExist(app=None, sess=None, rbt_id=None, task_type=None):
+    """
+    检查是否有相同的任务存在
+    :param app:
+    :param sess:
+    :param rbt_id:
+    :param task_type:
+    :return:
+    """
+    sql = '''SELECT count(rbt_id) FROM ai_chatrobot.rbt_task where rbt_id=:rbt_id and status<>9 and type=:type'''
+    params = {'rbt_id': rbt_id, 'type': type}
+    cnt = countBySQL(app=app,sess=sess, sql=sql, params=params)
+    if cnt>0:
+        return True
+    else:
+        return False
