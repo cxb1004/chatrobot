@@ -1,16 +1,159 @@
+import json
+
 from flask import current_app
 
 from flask_module.db_utils import *
 from flask_module.log_cluster import ClusterLog
-# from flask_module.log_manage import ManageLog as mlog
+from flask_module.robot_blueprint.Model.rbt_knowledge import getKnowledgeDataForClusterAnalysis
 from flask_module.robot_blueprint.Model.rbt_task import RobotTask
+from flask_module.textSimilarity import CosSim
+from flask_module.utils import *
 
+clog = ClusterLog()
+clog.info("聚类分析定时任务开始...")
+
+# 相似度比较的阀值
+DEFALUT_SIM_IDX = 0.8
+# 分组的最小数量,不包括和知识库相似的
+DEFALUT_GROUP_NUM = 5
+
+
+def getTaskIDString(_robot_list):
+    """
+    获得task_id列表，用于sql操作
+    :param _robot_list:
+    :return:
+    """
+    task_id_str = ''
+    for robot in _robot_list:
+        id = robot.get('task_id')
+        task_id_str = task_id_str + "'" + id + "',"
+    if task_id_str != '':
+        task_id_str = task_id_str[:task_id_str.__len__() - 1]
+    return task_id_str
+
+
+def saveClusterResult(task_id=None, rbt_id=None, qid=None, group=None):
+    """
+    存储一个分组的聚类分析结果
+    :param task_id:
+    :param rbt_id:
+    :param qid:
+    :param group:
+    :return:
+    """
+    sql = '''INSERT INTO ai_chatrobot.rbt_datamining_result(task_id,rbt_id,knowledge_id,questions,created_at) VALUES(:task_id,:rbt_id,:knowledge_id,:questions,now())'''
+    params = {'task_id': task_id, 'rbt_id': rbt_id, 'knowledge_id': qid, 'questions': str(group)}
+    executeBySQL(app=current_app, sql=sql, params=params)
+    clog.debug("标准问题[{}]下的分析结果数据保存成功")
+
+
+def cluster_by_task(task_id, rbt_id, params):
+    """
+    3.1 获得这个机器人的知识库knowledge_lib
+    3.2 获得需要分析的预料数据corpus(合并多个任务的corpus)
+    3.3 删除这个任务下已有的分析数据
+    3.4 先结合知识库进行相似度比较，符合相似度阀值的，记录：
+    question_id:标准问题ID
+    questions: [txt1,txt2...]
+    记录之后，text文本从corpus移除
+    所有知识库里的语句比较完之后，存入一次数据库  （保存之前先删除数据，这样可以重复运行）
+    3.5 剩余的corpus里的数据依次进行两两比较
+    3.5.1 取第一条数据，后面的数据和它比较，满足阀值的成组
+    3.5.2 如果组的数量满足阀值，就存入数据库，并从corpus里面移除相关数据
+    3.5.3 如果组的数量不满足阀值，移除第一条数据，开始下一个循环
+    :param task_id:
+    :param rbt_id:
+    :param params:
+    :return:
+    """
+    # 获得聚类分析使用的参数
+    clog.info("设置聚类分析任务的参数...")
+    try:
+        params_json = json.loads(params)
+        sim_idx = params_json.get('sim_idx')
+        group_num = params_json.get('group_num')
+        if isNullOrBlank(sim_idx):
+            sim_idx = DEFALUT_SIM_IDX
+        if isNullOrBlank(group_num):
+            group_num = DEFALUT_GROUP_NUM
+    except Exception as ex:
+        clog.error_ex("聚类分析参数解析出错，采用默认参数！")
+        sim_idx = DEFALUT_SIM_IDX
+        group_num = DEFALUT_GROUP_NUM
+    clog.info("聚类分析任务的参数设置完毕：sim_idx：{}   group_num：{}".format(sim_idx, group_num))
+
+    # 3.1 获得这个机器人的知识库knowledge_lib
+    knowledge_lib = getKnowledgeDataForClusterAnalysis(app=current_app, rbt_id=rbt_id)
+    # 获得问题文本
+    knowledges = knowledge_lib.keys()
+    clog.info("获取机器人[{}]的知识库数据{}条".format(knowledges.__len__()))
+
+    # 3.2 获得需要分析的预料数据corpus(合并多个任务的corpus)
+    sql = '''select content from rbt_datamining_data where task_id in (select task_id from rbt_task where type=:type and status=:status and rbt_id=:rbt_id) '''
+    params = {'type': RobotTask.TYPE_CLUSTER_ANALYSIS.get('type'),
+              'status': RobotTask.STATUS_IN_PROCESS, 'rbt_id': rbt_id}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+    corpus = []
+    for data in queryData:
+        corpus.append(data.get('content'))
+    # 去重
+    corpus = list(dict.fromkeys(corpus))
+    clog.info("去重之后，待分析的数据有{}条".format(corpus.__len__()))
+
+    # 3.3 删除这个任务下已有的分析数据
+    sql = '''delete from rbt_datamining_result where task_id=:task_id'''
+    params = {'task_id': task_id}
+    delCount = executeBySQL(app=current_app, sql=sql, params=params)
+    if delCount > 0:
+        clog.info("数据清理完成, 共清理了{}条数据".format(delCount))
+
+    simUtil = CosSim()
+
+    if knowledges.__len__() > 0:
+        # 3.4 结合知识库进行相似度比较，符合相似度阀值的，记录：
+        # question_id: 标准问题ID
+        # questions: [txt1, txt2...]
+        # 记录之后，text文本从corpus移除
+        # 所有知识库里的语句比较完之后，存入一次数据库  （保存之前先删除数据，这样可以重复运行）
+        clog.info("开始结合知识库进行聚类分析...")
+        qid_sentences = {}
+        for sentence in corpus:
+            # 判断这句话尚未经过知识库的比较
+            max_qid = 0.0
+            for knowledge in knowledges:
+                simValue = simUtil.getSimilarityIndex(knowledge, sentence)
+                if simValue >= max_qid and simValue >= sim_idx:
+                    max_qid = knowledge_lib.get(knowledge)
+
+            if qid_sentences.get(max_qid) is None:
+                # 如果还没有这个问题ID，就新增一个{qid:[句1]}
+                qid_sentences[max_qid] = [sentence]
+            else:
+                # 如果已经有这个问题ID，就追加一个{qid:[句1,句2]}
+                qid_sentences[max_qid].append(sentence)
+
+        # 筛选出分组数量超过阀值的组
+        for qid in qid_sentences.keys():
+            group = qid_sentences.get(qid)
+            if group.__len__() >= group_num:
+                # 保存分析结果到结果表
+                saveClusterResult(task_id, rbt_id, qid, group)
+                # 从待分析数据中，移除已分析的数据，保留未分组或分组数量不足的数据
+                corpus = [item for item in corpus if item not in group]
+                clog.info("移除已分析的数据，剩余{}条数据待分析...".format(corpus.__len__()))
+        clog.info("结合知识库的聚类分析完成")
+
+    clog.info("开始进行两两聚类分析，分析数量为{}条".format(corpus.__len__()))
+
+
+# 3.5 剩余的corpus里的数据依次进行两两比较
 
 def cluster_analysis_task():
     """
     执行聚类分析任务
     为了以后重构分服考虑，单独做成一个py文件
-    1、从rbt_task里面获得所有未开始运行的聚类分析任务，以robot_id为单位，合并同一个机器人，多条未运行的数据
+    1、从rbt_task里面获得所有未开始运行的聚类分析任务，以task_id为单位，合并同一个机器人，多条未运行的数据
     2、把所有未运行的数据，设置为运行中
     3、循环每一个task_id，执行如下
     3.1 获得这个机器人的知识库knowledge_lib
@@ -31,33 +174,55 @@ def cluster_analysis_task():
     2、根据设计，出错的话就进入下一个循环，无需事务控制
     :return:
     """
-    clog = ClusterLog()
-    clog.info("聚类分析定时任务开始...")
 
     # conn = db.get_engine(current_app)
     # Session = sessionmaker(bind=conn)
     # session = Session()
     # session.begin()
-    # 1、从rbt_task里面获得所有未开始运行的聚类分析任务，以robot_id为单位，合并同一个公司，多条未运行的数据
-    sql = '''SELECT company_id, rbt_id, status, params, comment, created_at FROM ai_chatrobot.rbt_task where type=:type and status=:status group by rbt_id  order by created_at asc'''
+    # 1、从rbt_task里面获得所有未开始运行的聚类分析任务，以task_id为单位
+    # 不已机器人为分析单位的原因在于，王宁宁需要根据task_id来查询任务执行情况，并由此查询结果数据
+    # 如果以机器人为单位，数据查询和后期清理数据都会有问题
+    sql = '''SELECT task_id, company_id, rbt_id, params FROM ai_chatrobot.rbt_task where type=:type and status=:status order by created_at asc'''
     params = {'type': RobotTask.TYPE_CLUSTER_ANALYSIS.get('type'), 'status': RobotTask.STATUS_INIT}
     task_list = queryBySQL(app=current_app, sql=sql, params=params)
 
     if task_list.__len__() == 0:
         clog.info("没有聚类分析任务需要执行，定时任务结束。")
     else:
-        clog.info("一共有{}个聚类分析任务需要执行".format(task_list.__len__()))
+        clog.info("一共有{}个聚类分析任务".format(task_list.__len__()))
 
         # 2、把所有未运行的数据，设置为运行中
-        sql = '''update'''
+        task_ids = getTaskIDString(task_list)
+        sql = '''update ai_chatrobot.rbt_task set status=:status1 where task_id in ({}) and status=:status2 and type=:type'''.format(
+            task_ids)
+        params = {'status1': RobotTask.STATUS_IN_PROCESS, 'status2': RobotTask.STATUS_INIT,
+                  'type': RobotTask.TYPE_CLUSTER_ANALYSIS.get('type'), 'rbt_id': task_ids}
+        updateCount = executeBySQL(app=current_app, sql=sql, params=params)
+        clog.info("锁定{}个聚类分析任务".format(updateCount))
 
         for task in task_list:
-            company_id = task.get("company_id")
-            rbt_id = task.get("rbt_id")
-            params = task.get("params")
-            clog.info("开始执行公司[{}]-机器人[{}]的聚类分析任务".format(company_id,rbt_id))
+            # 3、循环每一个robotID
+            try:
+                company_id = task.get("company_id")
+                task_id = task.get("task_id")
+                rbt_id = task.get("rbt_id")
+                params = task.get("params")
+                clog.info("聚类分析任务{}执行中: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
+                cluster_by_task(task_id, rbt_id, params)
 
+                clog.info("聚类分析任务{}执行完毕: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
+                sql = '''update ai_chatrobot.rbt_task set status=:status1 where task_id=:task_id'''
+                params = {'status1': RobotTask.STATUS_FINISH, 'task_id': task_id}
+                updateCount = executeBySQL(app=current_app, sql=sql, params=params)
+                if updateCount > 0:
+                    clog.info("机器人[{}]的{}个聚类分析任务解锁并设置为结束状态".format(rbt_id, updateCount))
+                else:
+                    clog.error("机器人[{}]的聚类分析任务解锁失败！".format(rbt_id))
+            except Exception as ex:
+                clog.error_ex("机器人[{}]聚类任务执行出错！".format(rbt_id))
+                # 继续下个机器人
+                continue
 
     clog.info("聚类分析定时任务完成...")

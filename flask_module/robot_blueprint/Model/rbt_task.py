@@ -5,6 +5,8 @@ from flask_module.utils import *
 class RobotTask:
     # 开始状态
     STATUS_INIT = 0
+    # 开始状态
+    STATUS_IN_PROCESS = 1
     # 结束状态
     STATUS_FINISH = 99
     # 知识库更新，后续需要更新模型或语料库
