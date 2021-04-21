@@ -15,7 +15,7 @@ clog.info("聚类分析定时任务开始...")
 # 相似度比较的阀值
 DEFALUT_SIM_IDX = 0.8
 # 分组的最小数量,不包括和知识库相似的
-DEFALUT_GROUP_NUM = 5
+DEFALUT_GROUP_NUM = 3
 
 
 def getTaskIDString(_robot_list):
@@ -144,10 +144,25 @@ def cluster_by_task(task_id, rbt_id, params):
                 clog.info("移除已分析的数据，剩余{}条数据待分析...".format(corpus.__len__()))
         clog.info("结合知识库的聚类分析完成")
 
+    # 3.5 剩余的corpus里的数据依次进行两两比较
     clog.info("开始进行两两聚类分析，分析数量为{}条".format(corpus.__len__()))
+    group_sentences = []
+    # 如果待分析数据数量，不足以分成一组，结束分析
+    while corpus.__len__() >= group_num:
+        # 重置数组，并且从语料库的第一个句子作为第一个元素
+        group_sentences = [corpus[0]]
+        # 从第二条记录开始做比较
+        for item in corpus[1:]:
+            simValue = simUtil.getSimilarityIndex(group_sentences[0], item)
+            if simValue >= sim_idx:
+                group_sentences.append(item)
+        # 如果分组数量满足阀值，保存数据，并从语料库里面移除这部分数据
+        if group_sentences.__len__() >= group_num:
+            saveClusterResult(task_id, rbt_id, qid=None, group=group_sentences)
+            # 从待分析数据中，移除已分析的数据，保留未分组或分组数量不足的数据
+            corpus = [item for item in corpus if item not in group]
+    clog.info("两两聚类分析完成")
 
-
-# 3.5 剩余的corpus里的数据依次进行两两比较
 
 def cluster_analysis_task():
     """
