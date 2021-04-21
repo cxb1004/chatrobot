@@ -393,9 +393,11 @@ def create_cluster_analysis_task():
     try:
         # 2、存储数据
         for content in data_list:
-            sql = '''INSERT INTO ai_chatrobot.rbt_datamining_data (rbt_id, task_id, content) VALUES (rbt_id:rbt_id, task_id:task_id, content:content)'''
-            params = {'rbt_id': rbt_id, 'task_id': task_id, 'content': content}
-            executeBySQL(sess=session, sql=sql, params=params)
+            content = clearCorpusData(content)
+            if content is not None:
+                sql = '''INSERT INTO ai_chatrobot.rbt_datamining_data (rbt_id, task_id, content) VALUES (rbt_id:rbt_id, task_id:task_id, content:content)'''
+                params = {'rbt_id': rbt_id, 'task_id': task_id, 'content': content}
+                executeBySQL(sess=session, sql=sql, params=params)
 
         # 3、生成任务
         createTask(sess=session, company_id=company_id, rbt_id=rbt_id, task_type=RobotTask.TYPE_CLUSTER_ANALYSIS)

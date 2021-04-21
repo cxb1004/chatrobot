@@ -139,6 +139,15 @@ def timeCompare(time1, time2):
     elif f1 < f2:
         return 1
 
+
+def clearCorpusData(text):
+    """
+    对数据进行清洗，过滤到一部分不需要分析的数据，比如表情符号，电话号码等
+    :param text:
+    :return:
+    """
+    return text
+
 # time1 = datetime.datetime.now()
 # time.sleep(2)
 # time2 = datetime.datetime.now()
