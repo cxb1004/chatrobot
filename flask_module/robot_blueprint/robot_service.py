@@ -29,6 +29,7 @@ def load_robot(rbt_id):
     :param rbt_id:
     :return:
     """
+    global ROBOT_LIST
     # 1、检查机器人是否已经存在于ROBOT_LIST，如果已经存在，结束函数
     if rbt_id in ROBOT_LIST.keys():
         slog.warn("机器人已经加载，无需操作！")
@@ -48,7 +49,9 @@ def load_robot(rbt_id):
     # 4、如果行业机器人ID不为空，就载入行业机器人
     industry_robot_id = cRobot.getIndustryRobotID()
     if industry_robot_id is not None and industry_robot_id not in ROBOT_LIST.keys():
-        load_industry_robot(cRobot.getIndustryRobotID())
+        industry_robot = Robot()
+        industry_robot.assemble(industry_robot_id)
+        ROBOT_LIST = {industry_robot_id, industry_robot}
 
 
 def load_industry_robot(industry_robot_id):

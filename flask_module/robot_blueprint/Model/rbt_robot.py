@@ -5,11 +5,6 @@ from flask_module.robot_blueprint.constants import RobotConstants
 from flask_module.utils import *
 
 
-def assemble_model(self, rbt_id):
-    # TODO 根据rbt_id载入模型
-    pass
-
-
 class Robot:
     # 机器人自动卸载时间，默认是3600秒（1小时）
     # TODO 这个配置可以写入到配置文件中
@@ -81,16 +76,8 @@ class Robot:
             raise Exception(errMsg)
         pass
 
-    def __str__(self):
-        return self.detail(self)
-
-    def detail(self):
-        """
-        获得机器人详细信息
-        :return:
-        """
-        msg = "robot id = {}".format(self.__rbt_id)
-        return msg
+    def answer(self, question):
+        pass
 
     def isExpired(self):
         """
@@ -106,3 +93,7 @@ class Robot:
             if rtn < 1:
                 return True
         return False
+
+    def assemble_model(self, rbt_id):
+        # TODO 根据rbt_id载入模型
+        pass
