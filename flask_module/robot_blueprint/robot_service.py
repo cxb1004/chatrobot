@@ -5,10 +5,13 @@ from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_robot import Robot
 from flask_module.utils import *
+from flask_module.textSimilarity import CosSim
 
 ROBOT_LIST = {}
 
 slog = ServiceLog()
+
+simUtil = CosSim()
 
 
 def load_robot(rbt_id):
@@ -73,8 +76,6 @@ def mergeAnswer(c_answers, i_answers):
     """
 
     c_answers.extend(i_answers)
-    c_answers.sort(key=lambda i: i['sim_val'])
-
     c_answers.sort(key=lambda i: i['sim_val'], reverse=True)
 
     # TODO 这里的5是最终返回给前端的数据，重构的时候写到配置文件里
@@ -142,7 +143,7 @@ def inf_answer():
         return return_fail(errMsg)
 
     # 4、使用企业机器人实例cRobot进行answer回答，分别获得前n个知识库匹配的数据，以及模型判断的结果
-    c_answers = cRobot.answer(question)
+    c_answers = cRobot.answer(simUtil, question)
 
     # 5、获得企业机器人cRobot的所属行业机器人ID
     industry_robot_id = cRobot.getIndustryRobotID()

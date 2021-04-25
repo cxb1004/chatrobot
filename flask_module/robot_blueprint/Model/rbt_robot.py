@@ -76,8 +76,64 @@ class Robot:
             raise Exception(errMsg)
         pass
 
-    def answer(self, question):
-        pass
+    def answer(self, simUtil, question):
+        """
+        机器人回复接口
+        1、检查语料库是否存在
+        2、如果语料库存在就进行文本判断，记录满足条件的question_id, idx_val,type,tag
+        3、如果语料库不存在，就检查企业模型是否存在
+        4、如果企业模型存在，就进行模型判断
+        4.1 模型判断得出question_id之后，对question_id说对应文本，进行文本匹配度的判断,得出一个相似度值，代表这个判断的准确度
+        5、如果既没有知识库，又没有模型，抛出异常
+        :param simUtil:
+        :param question:
+        :return:
+        """
+        if (self.__corpus.__len__() == 0 or self.__corpus is None) and self.__model is None:
+            # 5、如果既没有知识库，又没有模型，抛出异常
+            raise Exception("机器人无知识库，无模型，无法回答！")
+
+        company_answer = []
+        # 1、检查语料库是否存在
+        if self.__corpus.__len__() > 0:
+            temp_dict = {}
+            for sentence in self.__corpus.keys():
+                simValue = simUtil.getSimilarityIndex(question, sentence)
+                if simValue >= self.__sim_idx:
+                    temp_dict['question_id'] = self.__corpus.get(sentence)
+                    temp_dict['sim_value'] = simValue
+                    temp_dict['type'] = RobotConstants.ANSWER_TYPE_KNOWLEDGE
+                    temp_dict['tag'] = RobotConstants.ANSWER_TAG_COMPANY
+                    # 2、如果语料库存在就进行文本判断，记录满足条件的question_id, idx_val, type, tag
+                    company_answer.append(temp_dict)
+
+        # 3、检查企业模型是否存在
+        if self.__model is not None:
+            # 4.1 模型判断得出question_id之后，对question_id说对应文本，进行文本匹配度的判断, 得出一个相似度值，代表这个判断的准确度
+            temp_dict = {}
+            # TODO 这里要修改成使用模型,获得预测数据：question_id
+            # question_id = self.__model.pred(question)
+            question_id = "xxxxxxx"
+            # 根据question_id获得question文本
+            pred_question = self.__knowledge.get(question_id).get('question')
+            sim_value = simUtil.getSimilarityIndex(question, pred_question)
+            temp_dict['question_id'] = question_id
+            temp_dict['sim_val'] = sim_value
+            temp_dict['type'] = RobotConstants.ANSWER_TYPE_MODEL
+            temp_dict['tag'] = RobotConstants.ANSWER_TAG_COMPANY
+            company_answer.append(temp_dict)
+        # 对企业机器人的答案，按相似度从高到低排序，并获取一定的数量值
+        answers = sortAndLimit(company_answer)
+        return answers
+
+    def sortAndLimit(answer_list):
+        """
+        对企业机器人的答案，按相似度从高到低排序，并获取一定的数量值
+        :return:
+        """
+        answer_list.sort(key=lambda i: i['sim_val'], reverse=True)
+        # TODO 这里的5，可以从配置文件里面读取
+        return answer_list[:5]
 
     def isExpired(self):
         """

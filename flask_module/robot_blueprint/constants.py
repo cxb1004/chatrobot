@@ -37,3 +37,13 @@ class RobotConstants:
     KNOWLEDGE_USE_MODEL_NO_PASS = 0
     # 模型预测成功
     KNOWLEDGE_USE_MODEL_PASS = 1
+
+    # =============问答=============
+    # 给出答案是通过模型m
+    ANSWER_TYPE_MODEL = 'm'
+    # 给出答案是通过知识库k
+    ANSWER_TYPE_KNOWLEDGE = 'k'
+    # 给出答案的是企业知识库
+    ANSWER_TAG_COMPANY = 'c'
+    # 给出答案的是行业知识库
+    ANSWER_TAG_INDUSTRY = 'i'
