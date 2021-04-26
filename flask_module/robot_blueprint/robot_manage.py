@@ -275,42 +275,64 @@ def sync_knowledge():
         mlog.error_ex(errMsg)
         return return_fail(errMsg)
 
+    # 如果需要重新整个知识库，需要先删除已有知识库内容
+    if is_overwrite == 1:
+        sql = '''delete from ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
+        params = {'rbt_id': rbt_id}
+        executeBySQL(app=current_app, sql=sql, params=params)
+        mlog.info('机器人【{}】的知识库清除成功'.format(rbt_id))
+
+    # 记录所有的错误
+    errorMsg = []
+
     # 4、把数据记录到rbt_knowledge数据表
+    for knowledge in knowledge_list_data:
+        id = knowledge["id"]
+        company_id = knowledge["company_id"]
+        question = knowledge["question"]
+        answer = knowledge["answer"]
+        category_id = knowledge["category_id"]
+        parent_id = knowledge["parent_id"]
+        action = knowledge["action"]
 
-    conn = db.get_engine(current_app)
-    Session = sessionmaker(bind=conn)
-    session = Session()
-    session.begin()
-    companyID = None
-    try:
-        # 如果需要重新整个知识库，需要先删除已有知识库内容
-        if is_overwrite == 1:
-            sql = '''delete from ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
-            params = {'rbt_id': rbt_id}
-            executeBySQL(sess=session, sql=sql, params=params)
-            mlog.info('机器人【{}】的知识库清除成功'.format(rbt_id))
+        # 如果答案为空，设为None
+        if isNullOrBlank(answer):
+            answer = None
+        # 如果分组ID为空，设为None
+        if isNullOrBlank(category_id):
+            category_id = None
 
-        for knowledge in knowledge_list_data:
-            id = knowledge.get('data').get('id')
-            company_id = knowledge.get('data').get('company_id')
-            companyID = company_id
-            question = knowledge.get('data').get('question')
-            answer = knowledge.get('data').get('answer')
-            category_id = knowledge.get('data').get('category_id')
-            parent_id = knowledge.get('data').get('parent_id')
-            action = knowledge.get('action')
+        # 单条错误的内容，knowledge_id: 错误信息
+        errorRecord = {}
 
-            if isNullOrBlank(answer):
-                answer = None
-            if isNullOrBlank(category_id):
-                category_id = None
+        # 如果question关键信息为空，报错，并跳过这个记录
+        if isNullOrBlank(id):
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = "knowledge_id缺失"
+            errorMsg.append(errorRecord)
+            continue
+        if isNullOrBlank(question):
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = "问题文本缺失"
+            errorMsg.append(errorRecord)
+            continue
+        if isNullOrBlank(company_id):
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = "公司ID缺失"
+            errorMsg.append(errorRecord)
+            continue
+        if isNullOrBlank(parent_id):
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = "parent_id缺失"
+            errorMsg.append(errorRecord)
+            continue
+        if isNullOrBlank(action):
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = "action缺失"
+            errorMsg.append(errorRecord)
+            continue
 
-            # 如果company_id/question关键信息为空，报错，并跳过这个记录
-            if isNullOrBlank(company_id) or isNullOrBlank(question):
-                errMsg = '企业ID或问题数据缺失：{}'.format(knowledge)
-                mlog.error(errMsg)
-                raise Exception(errMsg)
-
+        try:
             if action == 'add':
                 sql = '''INSERT INTO ai_chatrobot.rbt_knowledge (id, company_id, rbt_id, question, answer, category_id, parent_id, use_model) VALUES (:id, :company_id, :rbt_id, :question, :answer, :category_id, :parent_id, :use_model)'''
                 params = {'id': id,
@@ -322,7 +344,7 @@ def sync_knowledge():
                           'parent_id': parent_id,
                           'use_model': RobotConstants.KNOWLEDGE_USE_MODEL_NO_PASS
                           }
-                result_count = executeBySQL(sess=session, sql=sql, params=params)
+                result_count = executeBySQL(app=current_app, sql=sql, params=params)
                 if result_count == 1:
                     mlog.debug('新增知识成功：{}'.format(id))
                 else:
@@ -339,7 +361,7 @@ def sync_knowledge():
                     'parent_id': parent_id,
                     'id': id
                 }
-                result_count = executeBySQL(sess=session, sql=sql, params=params)
+                result_count = executeBySQL(app=current_app, sql=sql, params=params)
                 if result_count == 1:
                     mlog.debug('修改知识成功：{}'.format(id))
                 else:
@@ -350,26 +372,31 @@ def sync_knowledge():
             elif action == 'delete':
                 sql = '''delete from ai_chatrobot.rbt_knowledge where id=:id'''
                 params = {'id': id}
-                executeBySQL(sess=session, sql=sql, params=params)
+                executeBySQL(app=current_app, sql=sql, params=params)
                 mlog.debug('删除知识成功：{}'.format(id))
             else:
                 errMsg = '知识数据操作类型错误：{}'.format(knowledge)
                 mlog.error(errMsg)
                 raise Exception(errMsg)
+        except Exception as ex:
+            errorRecord["knowledge_data"] = knowledge
+            errorRecord["error"] = str(ex)
+            errorMsg.append(errorRecord)
+            continue
 
-        # 更新知识库成功以后，立即在task表里面新增任务，机器人需要自动更新前置词库
-        createTask(sess=session, company_id=companyID, rbt_id=rbt_id, task_type=RobotTask.TYPE_SYNC_KNOWLEDGE)
-
-        # 提交事务
-        session.commit()
+    # 更新知识库成功以后，立即在task表里面新增任务，机器人需要自动更新前置词库
+    # 由于涉及到客户的反复操作，这里对任务新增不做任何限制，在处理任务的时候，对于同一机器人的多个任务进行处理（同一个机器人的同一类型的任务如果有在运行的，就跳过运行，下个循环执行）
+    try:
+        createTask(app=current_app, company_id=company_id, rbt_id=rbt_id, task_type=RobotTask.TYPE_SYNC_KNOWLEDGE)
     except Exception as ex:
-        errMsg = '知识库同步出错，数据已回滚，请联系系统管理员查看问题！'
+        errMsg = "知识库更新成功，刷新机器人失败，请联系管理员处理！"
         mlog.error_ex(errMsg)
-        # 回滚事务
-        session.rollback()
         return return_fail(errMsg)
 
-    return return_success('知识库同步完成!')
+    if errorMsg.__len__() > 0:
+        return return_fail_code(code=888, errorMsg=errorMsg)
+    else:
+        return return_success('知识库同步完成!')
 
 
 @robot_blueprint.route('/manager/getKnowledgeByRobot', methods=['POST'])
@@ -378,15 +405,16 @@ def get_knowledge_by_robot():
     这个接口是供给王宁宁调用，用以确认机器人的知识库和企业知识库保持一致
     :return:
     """
-    rbt_id = request.form.get('rbt_id', type=int)
+    rbt_id = request.form.get('rbt_id', type=str)
     if isNullOrBlank(rbt_id):
         return return_fail("参数缺失！")
 
     sql = '''SELECT rbt_id, id, question, answer, category_id, parent_id FROM ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
-    params = {'rbt_id':rbt_id}
+    params = {'rbt_id': rbt_id}
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
     return return_success(queryData)
+
 
 @robot_blueprint.route('/manager/createClusterAnalysisTask', methods=['POST'])
 def create_cluster_analysis_task():

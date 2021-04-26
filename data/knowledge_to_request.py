@@ -17,6 +17,7 @@ import sys
 import warnings
 
 import requests
+from flask_module.utils import clearCorpusData
 
 warnings.filterwarnings("ignore")
 # 以下部分代码可以保证在linux环境下任何目录都可以运行该文件
@@ -44,6 +45,7 @@ if int(res_json['code']) == 101:
         knowledge_data = {}
         knowledge_data['id'] = knowledge_id
         knowledge_data['company_id'] = company_id
+        # question = clearCorpusData(question)
         knowledge_data['question'] = question
         knowledge_data['answer'] = answer
         knowledge_data['category_id'] = category_id
@@ -54,4 +56,4 @@ if int(res_json['code']) == 101:
 else:
     print('接口调用失败：{}'.res_json.get['message'])
 
-print(post_request_data)
+print(json.dumps(post_request_data,ensure_ascii=False))

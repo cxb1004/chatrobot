@@ -148,6 +148,35 @@ def clearCorpusData(text):
     """
     return text
 
+
+def clearCorpusData(data):
+    """
+    文本数据在转化成json的时候，需要对特殊字符进行一些处理
+    :param data:
+    :return:
+    """
+    # 去除回车、换行、制表符
+    data.replace("\n", "") \
+        .replace("\r", "") \
+        .replace("\n\r", "") \
+        .replace("\r\n", "") \
+        .replace("\t", "") \
+        .replace("\\\"", "\"") \
+        .replace("				", "")
+
+    # 破坏格式的字符转成中文的
+    data.replace('":"{"', "”：“『”") \
+        .replace('":"', '“：”') \
+        .replace('","', "“，”") \
+        .replace('":{"', "“：『”") \
+        .replace('"},"', "“』，”") \
+        .replace(',"', "，”") \
+        .replace('{"', "『“") \
+        .replace('"}', "”』") \
+        .replace('":', "“：") \
+        .replace('"', '”')
+    return data
+
 # time1 = datetime.datetime.now()
 # time.sleep(2)
 # time2 = datetime.datetime.now()
