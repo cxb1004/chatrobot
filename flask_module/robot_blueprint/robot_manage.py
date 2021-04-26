@@ -239,13 +239,26 @@ def get_robot_list():
 
 @robot_blueprint.route('/manager/syncKnowledge', methods=['POST'])
 def sync_knowledge():
+    """
+    按机器人同步知识库
+    1、检查参数
+    2、检查机器人是否存在，不存在就返回错误
+    3、把知识库数据转化为json,出错就全部返回
+    4、把数据记录到rbt_knowledge数据表
+    注意，根据和王宁宁的讨论，知识库的数据读取成功即保存，错误的数据以knowledge_id为主键进行返回
+    5、知识库同步完成之后，只要有一条数据保存成功，就添加知识库更新的任务
+    如果一条数据都没有成功，无需添加任务（即机器人也不需要去更新知识库）
+    :return:
+    """
     rbt_id = request.form.get('rbt_id', type=str)
     is_overwrite = request.form.get('is_overwrite', type=int)
     knowledges_str = request.form.get('knowledge_data', type=str)
 
+    # 1、检查参数
     if isNullOrBlank(rbt_id) or isNullOrBlank(is_overwrite) or isNullOrBlank(knowledges_str):
         return return_fail('参数缺失！')
 
+    # 2、检查机器人是否存在，不存在就返回错误
     sql = '''select count(rbt_id) as cnt from ai_chatrobot.rbt_robot where rbt_id=:rbt_id'''
     params = {'rbt_id': rbt_id}
     count = countBySQL(app=current_app, sql=sql, params=params)
@@ -254,6 +267,7 @@ def sync_knowledge():
         mlog.error(errMsg)
         return return_fail(errMsg)
 
+    # 3、把知识库数据转化为json, 出错返回异常
     try:
         knowledge_list_data = json.loads(knowledges_str)
     except Exception as ex:
@@ -261,7 +275,8 @@ def sync_knowledge():
         mlog.error_ex(errMsg)
         return return_fail(errMsg)
 
-    # 获取db connect处理事务
+    # 4、把数据记录到rbt_knowledge数据表
+
     conn = db.get_engine(current_app)
     Session = sessionmaker(bind=conn)
     session = Session()
@@ -356,6 +371,22 @@ def sync_knowledge():
 
     return return_success('知识库同步完成!')
 
+
+@robot_blueprint.route('/manager/getKnowledgeByRobot', methods=['POST'])
+def get_knowledge_by_robot():
+    """
+    这个接口是供给王宁宁调用，用以确认机器人的知识库和企业知识库保持一致
+    :return:
+    """
+    rbt_id = request.form.get('rbt_id', type=int)
+    if isNullOrBlank(rbt_id):
+        return return_fail("参数缺失！")
+
+    sql = '''SELECT rbt_id, id, question, answer, category_id, parent_id FROM ai_chatrobot.rbt_knowledge where rbt_id=:rbt_id'''
+    params = {'rbt_id':rbt_id}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+
+    return return_success(queryData)
 
 @robot_blueprint.route('/manager/createClusterAnalysisTask', methods=['POST'])
 def create_cluster_analysis_task():
