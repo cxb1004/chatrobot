@@ -53,13 +53,13 @@ def getKnowledgeDataForAnswer(app=None, sess=None, rbt_id=None):
         if pid == '0' or pid is None:
             # 如果是标准问题, 则添加<question, id>
             if use_model == 0:
-                corpus = {q, id}
-            full = {q, id}
+                corpus[q] = id
+            full[q] = id
         else:
             # 如果是相似问题, 则添加<question, parent_id>
             if use_model == 0:
-                corpus = {q, id}
-            full = {q, id}
+                corpus[q] = id
+            full[q] = id
     return corpus, full
 
 

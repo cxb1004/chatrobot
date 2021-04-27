@@ -1,11 +1,12 @@
-from flask import request
+from flask import request, current_app
 
+from flask_module.db_utils import *
 from flask_module.log_service import ServiceLog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_robot import Robot
-from flask_module.utils import *
 from flask_module.textSimilarity import CosSim
+from flask_module.utils import *
 
 ROBOT_LIST = {}
 
@@ -42,7 +43,8 @@ def load_robot(rbt_id):
     try:
         cRobot.assemble(rbt_id=rbt_id)
     except Exception as ex:
-        errMsg = "组建机器人{}失败，请联系系统管理员！".format(rbt_id)
+        slog.error(str(ex))
+        errMsg = "加载机器人{}失败，请联系系统管理员！".format(rbt_id)
         raise Exception(errMsg)
 
     # 3、rbt_id为主键，放入ROBOT_LIST字典
@@ -74,9 +76,9 @@ def mergeAnswer(c_answers, i_answers):
     :param i_answers:
     :return:
     """
-
-    c_answers.extend(i_answers)
-    c_answers.sort(key=lambda i: i['sim_val'], reverse=True)
+    if i_answers is not None:
+        c_answers.extend(i_answers)
+    c_answers.sort(key=lambda i: i['sim_value'], reverse=True)
 
     # TODO 这里的5是最终返回给前端的数据，重构的时候写到配置文件里
     if c_answers.__len__() > 5:
@@ -84,6 +86,24 @@ def mergeAnswer(c_answers, i_answers):
     else:
         cnt = c_answers.__len__()
     return c_answers[:cnt]
+
+
+@robot_blueprint.route('/service/getAnswerText', methods=['POST'])
+def getAnswerText():
+    """
+    测试用，把answer也查询出来返回给前端
+    :param rtn_answer:
+    :return:
+    """
+    rbt_id = request.form.get('rbt_id', type=str)
+    question_id = request.form.get('question_id', type=str)
+    sql = '''select answer FROM ai_chatrobot.rbt_knowledge where id=:question_id and rbt_id=:rbt_id'''
+    params = {'rbt_id': rbt_id, 'question_id': question_id}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+    if queryData.__len__() > 0:
+        return return_success(queryData[0]["answer"])
+    else:
+        return return_success("回答不出")
 
 
 @robot_blueprint.route('/service/answer', methods=['POST'])
@@ -169,6 +189,7 @@ def inf_answer():
         iRobot = None
 
     # 7、使用行业机器人iRobot进行回答
+    i_answers = None
     if iRobot is not None:
         i_answers = iRobot.answer(question)
 

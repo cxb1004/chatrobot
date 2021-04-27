@@ -53,28 +53,27 @@ class Robot:
         # 设置自动卸载时间
         self.__unloaded_at = getRobotUnloadTime(Robot.ROBOT_UNLOAD_PERIOD)
 
-        sql = '''select robot.rbt_id, robot.company_id, robot.company_account, robot.sim_idx,industry.robot_id industry_robot_id from ai_chatrobot.rbt_robot robot left join ai_chatrobot.rbt_industry industry on robot.industry_id=industry.id where robot.rbt_id=:rbt_id and status=:status and type=:type '''
+        sql = '''select robot.rbt_id, robot.company_id, robot.company_account, robot.sim_idx,industry.robot_id industry_robot_id from ai_chatrobot.rbt_robot robot left join ai_chatrobot.rbt_industry industry on robot.industry_id=industry.id where robot.rbt_id=:rbt_id and status=:status and type=:type and robot.deleted_at is null'''
         params = {'rbt_id': rbt_id, 'status': RobotConstants.RBT_STATUS_ON, 'type': RobotConstants.RBT_TYPE_COMPANY}
         queryData = queryBySQL(app=current_app, sql=sql, params=params)
         if queryData.__len__() == 1:
             data = queryData[0]
             self.__company_id = data.get('company_id')
             self.__company_account = data.get('company_account')
-            if data.get('company_account') is None:
-                self.__sim_idx = float(data.get('company_account'))
+            if data.get('sim_idx') is None:
+                self.__sim_idx = float(data.get('sim_idx'))
             else:
                 # TODO 这里后期替换为配置文件的值
-                self.__sim_idx = 0.8
+                self.__sim_idx = 0.4
             self.__industry_robot_id = data.get('industry_robot_id')
 
             self.__corpus, self.__knowledge = getKnowledgeDataForAnswer(app=current_app, rbt_id=rbt_id)
-
-            assemble_model(self, rbt_id)
+            # 模型组装功能代做
+            self.assemble_model(rbt_id)
         else:
             # 理论上应该只有一条记录，无记录或是多条记录都是错误的
-            errMsg = "机器人{}信息查询失败！".format(rbt_id)
+            errMsg = "组建机器人失败: 机器人[{}]不存在".format(rbt_id)
             raise Exception(errMsg)
-        pass
 
     def answer(self, simUtil, question):
         """
@@ -96,9 +95,11 @@ class Robot:
         company_answer = []
         # 1、检查语料库是否存在
         if self.__corpus.__len__() > 0:
-            temp_dict = {}
+
             for sentence in self.__corpus.keys():
+                temp_dict = {}
                 simValue = simUtil.getSimilarityIndex(question, sentence)
+                print("相似值：{}   比较语句：{}".format(simValue, sentence))
                 if simValue >= self.__sim_idx:
                     temp_dict['question_id'] = self.__corpus.get(sentence)
                     temp_dict['sim_value'] = simValue
@@ -107,7 +108,7 @@ class Robot:
                     # 2、如果语料库存在就进行文本判断，记录满足条件的question_id, idx_val, type, tag
                     company_answer.append(temp_dict)
 
-        # 3、检查企业模型是否存在
+        # TODO  3、检查企业模型是否存在
         if self.__model is not None:
             # 4.1 模型判断得出question_id之后，对question_id说对应文本，进行文本匹配度的判断, 得出一个相似度值，代表这个判断的准确度
             temp_dict = {}
@@ -123,17 +124,20 @@ class Robot:
             temp_dict['tag'] = RobotConstants.ANSWER_TAG_COMPANY
             company_answer.append(temp_dict)
         # 对企业机器人的答案，按相似度从高到低排序，并获取一定的数量值
-        answers = sortAndLimit(company_answer)
+        answers = self.sortAndLimit(company_answer)
         return answers
 
-    def sortAndLimit(answer_list):
+    def sortAndLimit(self, answer_list):
         """
         对企业机器人的答案，按相似度从高到低排序，并获取一定的数量值
         :return:
         """
-        answer_list.sort(key=lambda i: i['sim_val'], reverse=True)
+        answer_list.sort(key=lambda i: i['sim_value'], reverse=True)
         # TODO 这里的5，可以从配置文件里面读取
-        return answer_list[:5]
+        if answer_list.__len__()>5:
+            return answer_list[:5]
+        else:
+            return answer_list
 
     def isExpired(self):
         """
@@ -153,3 +157,6 @@ class Robot:
     def assemble_model(self, rbt_id):
         # TODO 根据rbt_id载入模型
         pass
+
+    def getIndustryRobotID(self):
+        return self.__industry_robot_id
