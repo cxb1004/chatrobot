@@ -72,14 +72,14 @@ def create_company_robot():
     # 接收参数
     company_id = request.form.get('company_id', type=int)
     company_account = request.form.get('company_account', type=str)
-    industry_name = request.form.get('industry_name', type=str)
+    industry_id = request.form.get('industry_id', type=int)
     expired_date_txt = request.form.get('expired_date', type=str)
     rbt_name = request.form.get('rbt_name', type=str)
 
     # 1、 验证参数
-    if isNullOrBlank(company_id) or isNullOrBlank(company_account) or isNullOrBlank(
-            expired_date_txt):
+    if isNullOrBlank(company_id) or isNullOrBlank(company_account) or isNullOrBlank(expired_date_txt):
         return return_fail("参数缺失！")
+
     try:
         expired_date = strToDate(expired_date_txt)
     except Exception as ex:
@@ -89,39 +89,35 @@ def create_company_robot():
 
     # 2、确认行业数据是一级行业，如果不是，自动查询出一级行业
     # 判断是否是一级行业
-    if industry_name is not None:
-        sql = '''select count(1) cnt from cloud_customer_service.ccs_industry AS industry where industry_name = :industry_name and industry_parent is null'''
-        count = countBySQL(app=current_app, sql=sql, params={'industry_name': industry_name})
-        if count == 0:
-            # 非一级行业，通过parent查询一级行业
-            sql = '''
-                    SELECT 
-                        industry2.industry_name
-                    FROM
-                        cloud_customer_service.ccs_industry AS industry1,
-                        cloud_customer_service.ccs_industry AS industry2
-                    WHERE
-                        industry1.industry_name = :industry_name
-                            AND industry1.industry_parent = industry2.id
-                '''
-            queryData = queryBySQL(app=current_app, sql=sql, params={'industry_name': industry_name})
-            if queryData is None or queryData.__len__() == 0:
-                # 如果还是找不到，就说明行业数据有问题了，需要抛出异常返回了
-                errMsg = "行业名不是一级行业，请确认行业数据【{}】是否正确！".format(industry_name)
-                mlog.error(errMsg)
-                return return_fail(errMsg)
-            else:
-                industry_name = queryData[0].get('industry_name')
+    if industry_id is not None:
+        sql = '''select a.id id1, a.industry_name name1, b.id id2, b.industry_name name2 from cloud_customer_service.ccs_industry a left join cloud_customer_service.ccs_industry b on a.industry_parent=b.id where a.id=:industry_id'''
+        queryData = queryBySQL(app=current_app, sql=sql, params={'industry_id': industry_id})
+        if queryData.__len__() == 1:
+            id1 = queryData[0].get("id1")
+            name1 = queryData[0].get("name1")
+            id2 = queryData[0].get("id2")
+            name2 = queryData[0].get("name1")
 
-            # 3、如果一级行业不存在，就自动创建
-        sql = 'select id from rbt_industry where industry_name=:industry_name'
-        queryData = queryBySQL(app=current_app, sql=sql, params={'industry_name': industry_name})
-        count = queryData.__len__()
+            if id2 is not None:
+                industry_id = int(id2)
+                industry_name = name2
+            else:
+                industry_id = int(id1)
+                industry_name = name1
+        else:
+            errMsg = "行业标签数据错误！"
+            mlog.error(errMsg)
+            return return_fail(errMsg)
+
+        # 3、如果一级行业不存在，就自动创建
+        sql = 'select count(1) count from rbt_industry where ccs_industry_id=:ccs_industry_id'
+        count = countBySQL(app=current_app, sql=sql, params={'ccs_industry_id': industry_id})
         if count == 0:
             mlog.info('行业【{}】不存在，新建行业...'.format(industry_name))
             sql2 = '''
                  INSERT INTO rbt_industry
                      (industry_name,
+                     ccs_industry_id,
                      has_model,
                      robot_id,
                      created_at,
@@ -129,42 +125,43 @@ def create_company_robot():
                      deleted_at)
                      VALUES
                      (:industry_name,
+                     :ccs_industry_id,
                      :has_model,
                      null,
                      now(),
                      now(),
                      null)
              '''
-            params2 = {'industry_name': industry_name,
+            params2 = {'industry_name': industry_name, "ccs_industry_id": industry_id,
                        'has_model': RobotConstants.INDUSTRY_MODEL_NO_EXIST
                        }
             executeBySQL(app=current_app, sql=sql2, params=params2)
             mlog.info('行业【{}】创建成功，稍后需要运营为这个行业训练模型'.format(industry_name))
 
-            # 创新之后重新获取industry_id
-            queryData = queryBySQL(app=current_app, sql=sql, params={'industry_name': industry_name})
-
+        # 创新之后重新获取industry_id
+        sql = '''select id from rbt_industry where ccs_industry_id=:ccs_industry_id'''
+        params = {"ccs_industry_id": industry_id}
+        queryData = queryBySQL(app=current_app, sql=sql, params=params)
         # 获得industry_id
         industry_id = int(queryData[0].get('id'))
-        mlog.debug('行业【{}】已经存在:industry_id = {}'.format(industry_name, industry_id))
-        mlog.debug('验证出一级行业为：{}'.format(industry_name))
+        mlog.debug('获得行业ID：{}'.format(industry_id))
 
-        # 4、检查这个企业是否已经有过，如果已经创建过，返回异常
-        sql = '''select count(rbt_id) as cnt from rbt_robot where company_id=:company_id and type=:type and status=:status and industry_id=:industry_id'''
-        params = {'company_id': company_id,
-                  'type': RobotConstants.RBT_TYPE_COMPANY,
-                  'status': RobotConstants.RBT_STATUS_ON,
-                  'industry_id': industry_id
-                  }
-        count = countBySQL(app=current_app, sql=sql, params=params)
-        if count > 0:
-            errMsg = '企业【{}】已经创建过同行业的机器人，无法重复创建！'.format(company_id)
-            mlog.error(errMsg)
-            return return_fail(errMsg)
     else:
         industry_name = None
         industry_id = None
         mlog.debug('机器人无行业')
+
+    # 4、检查这个企业是否已经有过，如果已经创建过，返回异常
+    sql = '''select count(rbt_id) as count from rbt_robot where company_id=:company_id and type=:type and industry_id=:industry_id'''
+    params = {'company_id': company_id,
+              'type': RobotConstants.RBT_TYPE_COMPANY,
+              'industry_id': industry_id
+              }
+    count = countBySQL(app=current_app, sql=sql, params=params)
+    if count > 0:
+        errMsg = '企业【{}】已经创建过同行业的机器人，无法重复创建！'.format(company_id)
+        mlog.error(errMsg)
+        return return_fail(errMsg)
 
     # 5、如果没有创建过同类机器人，创建机器人
     rbt_id = getUUID_1()
@@ -198,19 +195,20 @@ def get_robot_list_by_company():
     # 接收参数
     company_id = request.form.get('company_id', type=int)
     current_page = request.form.get('current_page', type=int)
+    if current_page < 1: current_page = 1
     per_page = request.form.get('per_page', type=int)
 
     if isNullOrBlank(current_page) or isNullOrBlank(per_page):
         return_fail('参数缺失！')
 
-    sql = '''select count(rbt_id) cnt from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null'''
-    params = {'company_id': company_id}
+    sql = '''select count(rbt_id) count from ai_chatrobot.rbt_robot where company_id=:company_id and status=:status and deleted_at is null'''
+    params = {'company_id': company_id, 'status': RobotConstants.RBT_STATUS_ON}
     all_records = countBySQL(app=current_app, sql=sql, params=params)
 
     maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
 
-    sql = '''select rbt_id, rbt_name, type, company_id, company_account, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where company_id=:company_id and deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
-    params = {'company_id': company_id, 'start': start, 'offset': offset}
+    sql = '''select rbt_id, rbt_name, type, company_id, company_account, industry_id, industry_name, status, model_status, model_updated_at, expired_at, created_at, updated_at, deleted_at from ai_chatrobot.rbt_robot where company_id=:company_id  and status=:status and deleted_at is null order by updated_at desc, created_at desc, status desc limit :start,:offset'''
+    params = {'company_id': company_id, 'start': start, 'offset': offset, 'status': RobotConstants.RBT_STATUS_ON}
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
     return return_success(queryData)
@@ -220,12 +218,13 @@ def get_robot_list_by_company():
 def get_robot_list():
     # 接收参数
     current_page = request.form.get('current_page', type=int)
+    if current_page < 1: current_page = 1
     per_page = request.form.get('per_page', type=int)
 
     if isNullOrBlank(current_page) or isNullOrBlank(per_page):
         return_fail('参数缺失！')
 
-    sql = '''select count(rbt_id) cnt from ai_chatrobot.rbt_robot where deleted_at is null'''
+    sql = '''select count(rbt_id) count from ai_chatrobot.rbt_robot where deleted_at is null'''
     all_records = countBySQL(app=current_app, sql=sql)
 
     maxPage, start, offset = calculatePageParameters(all_records, per_page, current_page)
@@ -259,7 +258,7 @@ def sync_knowledge():
         return return_fail('参数缺失！')
 
     # 2、检查机器人是否存在，不存在就返回错误
-    sql = '''select count(rbt_id) as cnt from ai_chatrobot.rbt_robot where rbt_id=:rbt_id'''
+    sql = '''select count(rbt_id) as count from ai_chatrobot.rbt_robot where rbt_id=:rbt_id'''
     params = {'rbt_id': rbt_id}
     count = countBySQL(app=current_app, sql=sql, params=params)
     if count == 0:

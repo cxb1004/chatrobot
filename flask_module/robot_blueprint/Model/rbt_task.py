@@ -86,7 +86,7 @@ def checkUnFinishedTaskExist(app=None, sess=None, rbt_id=None, task_type=None):
     :param task_type:
     :return:
     """
-    sql = '''SELECT count(rbt_id) FROM ai_chatrobot.rbt_task where rbt_id=:rbt_id and status<>9 and type=:type'''
+    sql = '''SELECT count(rbt_id) count  FROM ai_chatrobot.rbt_task where rbt_id=:rbt_id and status<>9 and type=:type'''
     params = {'rbt_id': rbt_id, 'type': type}
     cnt = countBySQL(app=app,sess=sess, sql=sql, params=params)
     if cnt>0:

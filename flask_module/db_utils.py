@@ -77,7 +77,7 @@ def countBySQL(app=None, sess=None, sql=None, params=None):
         db_result = sess.execute(statement, params)
         data = dbResultToDict(list(db_result))
 
-    return int(data[0].get('cnt'))
+    return int(data[0].get('count'))
 
 
 def dbResultToDict(result=None):
