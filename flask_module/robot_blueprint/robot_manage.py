@@ -416,66 +416,6 @@ def get_knowledge_by_robot():
     return return_success(queryData)
 
 
-@robot_blueprint.route('/manager/createClusterAnalysisTask', methods=['POST'])
-def create_cluster_analysis_task():
-    """
-    王宁宁这里会把机器人ID,和需要分析的数据传输给我们,存入数据库,并创建任务,通过定时任务去进行分析
-    1、接收数据
-    1.1 存储数据之前，先检查这个机器人是否已经有分析任务存在，如果存在，就不允许操作
-    2、存储数据,
-    3、生成任务
-    4、返回任务ID
-    :return: 返回任务ID,用于随时查阅聚类分析结果
-    """
-    # 1、接收数据
-    rbt_id = request.form.get('rbt_id', type=str)
-    company_id = request.form.get('company_id', type=str)
-    data = request.form.get('data', type=str)
-
-    if isNullOrBlank(rbt_id) or isNullOrBlank(company_id):
-        return return_fail("参数缺失！")
-
-    # 1.1 存储数据之前，先检查这个机器人是否已经有分析任务存在，如果存在，就不允许操作
-    isExist = checkUnFinishedTaskExist(app=current_app, rbt_id=rbt_id, task_type=RobotTask.TYPE_CLUSTER_ANALYSIS)
-    if isExist:
-        return return_fail("当前机器人正在运行一个分析任务，结束以后才可以提交新的任务，请耐心等候！")
-
-    try:
-        data_list = json.loads(data)
-    except Exception as ex:
-        errMsg = '知识库数据转化为json出错！'
-        mlog.error_ex(errMsg)
-        return return_fail(errMsg)
-
-    # 2、存储数据
-    # 先获取uuid作为taskID
-    task_id = getUUID_1()
-    conn = db.get_engine(current_app)
-    Session = sessionmaker(bind=conn)
-    session = Session()
-    session.begin()
-    try:
-        # 2、存储数据
-        for content in data_list:
-            content = clearCorpusData(content)
-            if content is not None:
-                sql = '''INSERT INTO ai_chatrobot.rbt_datamining_data (rbt_id, task_id, content) VALUES (rbt_id:rbt_id, task_id:task_id, content:content)'''
-                params = {'rbt_id': rbt_id, 'task_id': task_id, 'content': content}
-                executeBySQL(sess=session, sql=sql, params=params)
-
-        # 3、生成任务
-        createTask(sess=session, company_id=company_id, rbt_id=rbt_id, task_type=RobotTask.TYPE_CLUSTER_ANALYSIS)
-
-        session.commit()
-    except Exception as ex:
-        errMsg = '保存聚类分析数据出错!'
-        mlog.error_ex(errMsg)
-        session.rollback()
-        return return_fail(errMsg)
-
-    # 4、返回任务ID
-    return return_success(task_id)
-
 
 @robot_blueprint.route('/manager/testTask', methods=['POST'])
 def test_schedule_job_task():

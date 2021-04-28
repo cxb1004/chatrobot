@@ -7,8 +7,10 @@ class RobotTask:
     STATUS_INIT = 0
     # 开始状态
     STATUS_IN_PROCESS = 1
+    # 异常结束状态
+    STATUS_FINISH_EX = 99
     # 结束状态
-    STATUS_FINISH = 99
+    STATUS_FINISH = 100
     # 知识库更新，后续需要更新模型或语料库
     TYPE_SYNC_KNOWLEDGE = {'type': 1, 'task': '更新知识库，模型更新'}
     # 聚类分析
@@ -42,9 +44,10 @@ def createTask(app=None, sess=None, company_id=None, rbt_id=None, task_type=None
     type = task_type.get('type')
     task = task_type.get('task')
 
+    task_id = getUUID_1()
     sql = '''INSERT INTO ai_chatrobot.rbt_task (task_id, task, type, company_id, rbt_id, status, comment, created_at, updated_at) VALUES (:task_id, :task, :type, :company_id, :rbt_id, :status, :comment, now(), null)'''
     params = {
-        'task_id': getUUID_1(),
+        'task_id': task_id,
         'task': task,
         'type': type,
         'company_id': company_id,
@@ -52,9 +55,9 @@ def createTask(app=None, sess=None, company_id=None, rbt_id=None, task_type=None
         'status': RobotTask.STATUS_INIT,
         'comment': comment
     }
-    effect_count = executeBySQL(app=app, sess=sess, sql=sql, params=params)
+    executeBySQL(app=app, sess=sess, sql=sql, params=params)
 
-    return effect_count
+    return task_id
 
 
 def updateTaskStatus():

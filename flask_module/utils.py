@@ -140,15 +140,6 @@ def timeCompare(time1, time2):
         return 1
 
 
-def clearCorpusData(text):
-    """
-    对数据进行清洗，过滤到一部分不需要分析的数据，比如表情符号，电话号码等
-    :param text:
-    :return:
-    """
-    return text
-
-
 def clearCorpusData(data):
     """
     文本数据在转化成json的时候，需要对特殊字符进行一些处理
