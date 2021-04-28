@@ -195,7 +195,7 @@ def inf_answer():
 
     # 根据question_id,整合两部分的答案，返回数据
     rtn_answer = mergeAnswer(c_answers, i_answers)
-
+    slog.debug("问题：{}  \n 答案为：{}".format(question, rtn_answer))
     return return_success(rtn_answer)
 
 

@@ -9,7 +9,7 @@ params2 = {'rbt_id': '3c5c4a2e-a701-11eb-8557-507b9df05b85', 'question_id': ''}
 
 
 def answer():
-    question = input()
+    question = input("我：")
     if question == '0':
         exit()
     else:
