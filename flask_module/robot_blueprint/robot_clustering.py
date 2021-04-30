@@ -17,15 +17,13 @@ import json
 from flask import request, current_app
 
 from flask_module.corpus_utils import *
-from flask_module.log_cluster import ClusterLog
+from flask_module.log_cluster import ClusterLog as clusterLog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_task import *
 # from flask_module.db_utils import *
 from flask_module.robot_blueprint.constants import RobotConstants
 from flask_module.utils import *
-
-clusterLog = ClusterLog()
 
 
 def saveDataForCluster(rbt_id, task_id, insert_data):
@@ -94,49 +92,48 @@ def submit_cluster_request():
     rbt_id = request.form.get('rbt_id', type=str)
     company_id = request.form.get('company_id', type=int)
     talk_data = request.form.get('talk_data', type=str)
-    #
-    # # 1、验证参数
-    # if isNullOrBlank(rbt_id) or isNullOrBlank(company_id) or isNullOrBlank(talk_data):
-    #     return return_fail("参数缺失！")
-    #
-    # # 2、检查机器人是否存在，不存在就报错
-    # sql = '''SELECT count(rbt_id) count FROM ai_chatrobot.rbt_robot where company_id=:company_id and rbt_id=:rbt_id and status=:status'''
-    # params = {'company_id': company_id, 'rbt_id': rbt_id, 'status': RobotConstants.RBT_STATUS_ON}
-    # count = countBySQL(app=current_app, sql=sql, params=params)
-    # if count == 0:
-    #     return return_fail("机器人不存在：{}".format(rbt_id))
-    # clusterLog.info("验证机器人存在")
-    #
-    # # 3、检查该机器人是否有聚类分析任务未完成
-    # sql = '''SELECT count(task_id) count FROM ai_chatrobot.rbt_task where company_id=:company_id and rbt_id=:rbt_id and type=:type and status not in (:state_finish, :status_finish_ex) '''
-    # params = {'company_id': company_id, 'rbt_id': rbt_id, 'type': RobotTask.TYPE_CLUSTER_ANALYSIS['type'],
-    #           'state_finish': RobotTask.STATUS_FINISH, 'status_finish_ex': RobotTask.STATUS_FINISH_EX}
-    # count = countBySQL(app=current_app, sql=sql, params=params)
-    # if count > 0:
-    #     return return_fail("该机器人有聚类分析任务尚未完成，请等待当前任务完成后再提交：{}".format(rbt_id))
-    # clusterLog.info("没有同类型任务执行，允许提交任务")
-    #
-    # # 4、从post请求中获得json，解析之后存入rbt_datamining_data表
-    # talk_data = request.form.get('talk_data', type=str)
-    # try:
-    #     talk_json = json.loads(talk_data)
-    # except Exception as ex:
-    #     clusterLog.error_ex("解析数据出错！")
-    #     return return_fail("解析数据出错！")
-    #
-    # # 把json对象转化为List数据结构（为了尽快结束请求，这里不做数据清洗，把原始数据存入数据表）
-    # insert_data = filterDataForClusterAnalysis(company_id, rbt_id, talk_json)
-    #
-    # # 获取task_id
+
+    # 1、验证参数
+    if isNullOrBlank(rbt_id) or isNullOrBlank(company_id) or isNullOrBlank(talk_data):
+        return return_fail("参数缺失！")
+
+    # 2、检查机器人是否存在，不存在就报错
+    sql = '''SELECT count(rbt_id) count FROM ai_chatrobot.rbt_robot where company_id=:company_id and rbt_id=:rbt_id and status=:status'''
+    params = {'company_id': company_id, 'rbt_id': rbt_id, 'status': RobotConstants.RBT_STATUS_ON}
+    count = countBySQL(app=current_app, sql=sql, params=params)
+    if count == 0:
+        return return_fail("机器人不存在：{}".format(rbt_id))
+    clusterLog.info("验证机器人存在")
+
+    # 3、检查该机器人是否有聚类分析任务未完成
+    sql = '''SELECT count(task_id) count FROM ai_chatrobot.rbt_task where company_id=:company_id and rbt_id=:rbt_id and type=:type and status not in (:state_finish, :status_finish_ex) '''
+    params = {'company_id': company_id, 'rbt_id': rbt_id, 'type': RobotTask.TYPE_CLUSTER_ANALYSIS['type'],
+              'state_finish': RobotTask.STATUS_FINISH, 'status_finish_ex': RobotTask.STATUS_FINISH_EX}
+    count = countBySQL(app=current_app, sql=sql, params=params)
+    if count > 0:
+        return return_fail("该机器人有聚类分析任务尚未完成，请等待当前任务完成后再提交：{}".format(rbt_id))
+    clusterLog.info("没有同类型任务执行，允许提交任务")
+
+    # 4、从post请求中获得json，解析之后存入rbt_datamining_data表
+    talk_data = request.form.get('talk_data', type=str)
+    try:
+        talk_json = json.loads(talk_data)
+    except Exception as ex:
+        clusterLog.error_ex("解析数据出错！")
+        return return_fail("解析数据出错！")
+
+    # 把json对象转化为List数据结构（为了尽快结束请求，这里不做数据清洗，把原始数据存入数据表）
+    insert_data = filterDataForClusterAnalysis(company_id, rbt_id, talk_json)
+
+    # 获取task_id
     task_id = getUUID_1()
     #
-    # # 把聊天数据存入到数据库，完成数据存储（容错处理，遇到错误在日志中报错，不抛出异常）
-    # saveDataForCluster(rbt_id, task_id, insert_data)
+    # 把聊天数据存入到数据库，完成数据存储（容错处理，遇到错误在日志中报错，不抛出异常）
+    saveDataForCluster(rbt_id, task_id, insert_data)
 
     #  创建定时任务
     createTask(app=current_app, company_id=company_id, rbt_id=rbt_id, task_id=task_id,
                task_type=RobotTask.TYPE_CLUSTER_ANALYSIS)
 
     clusterLog.info('完成聚类分析请求')
-    return jsonResultVo(CODE_SUCCES, '请求已经接收，正在启动聚类分析任务，请耐心等待运行结束', '')
-
+    return return_success(task_id)
