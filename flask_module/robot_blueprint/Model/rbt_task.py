@@ -40,11 +40,13 @@ class RobotTask:
         self.updated_at = updated_at
 
 
-def createTask(app=None, sess=None, company_id=None, rbt_id=None, task_type=None, comment=None):
+def createTask(app=None, sess=None, company_id=None, rbt_id=None, task_id=None, task_type=None, comment=None):
     type = task_type.get('type')
     task = task_type.get('task')
 
-    task_id = getUUID_1()
+    if task_id is None:
+        task_id = getUUID_1()
+
     sql = '''INSERT INTO ai_chatrobot.rbt_task (task_id, task, type, company_id, rbt_id, status, comment, created_at, updated_at) VALUES (:task_id, :task, :type, :company_id, :rbt_id, :status, :comment, now(), null)'''
     params = {
         'task_id': task_id,

@@ -1,7 +1,6 @@
 import json
 
 from flask import current_app, request
-from sqlalchemy.orm import sessionmaker
 
 from flask_module.log_manage import ManageLog as mlog
 from flask_module.result_json import *
@@ -414,7 +413,6 @@ def get_knowledge_by_robot():
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
     return return_success(queryData)
-
 
 
 @robot_blueprint.route('/manager/testTask', methods=['POST'])
