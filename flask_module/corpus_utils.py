@@ -1,8 +1,11 @@
+# -*- coding:utf-8 -*-
 """
 语料库的一些通用操作
 """
 # from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
 
 """
 对于聊天数据的类型区分
@@ -52,7 +55,7 @@ def removeTagContent(text, tags):
     if tags.__len__() > 0:
         text = text.lower()
         for tag in tags:
-            pattern1 = re.compile(r'(\[' + tag.lower() + '\])(.*)(\[\/' + tag.lower() + '\])')
+            pattern1 = re.compile(r'(\[' + tag.lower() + '(.*)\])(.*)(\[\/' + tag.lower() + '\])')
             text = pattern1.sub(r'', text)
     return text
 
@@ -70,13 +73,28 @@ def removeQQ_Email_Phone_Mobile(text):
 
 def removeEmoj(text):
     """
-    去掉已经可以识别的标签
+    去掉快服表情
     :param text:
     :return:
     """
     # 去除{53c_min#xx#}
     pattern = re.compile(r'({53c_min#)(.*)(#})')
     text = pattern.sub(r'', text)
+    return text
+
+
+def removeHtmlTag(text):
+    """
+    去掉&nbsp
+    :param text:
+    :return:
+    """
+    beau = BeautifulSoup(text, 'html.parser')
+    # 去除HTML标
+    text = beau.get_text()
+    text = text.replace('&nbsp;', '').replace('<br/>', '')
+    return text
+
 
 # def clear_content(text):
 #     """
@@ -98,3 +116,6 @@ def removeEmoj(text):
 #
 #     return new_text
 #
+
+text = '您好，我们是传播易广告投放平台，请问您需要入驻我们的平台吗传播易官网：[url=www.chuanboyi.com]www.chuanboyi.com[/url]入驻我们“传播易”是给你增加了一个销售渠道，相当于你请了10个业务员的，而且我们是零佣金，我们这里注册的广告主快11w了，都是一线广告采购人员，已经入驻传播易的商家他们的销售明显增加，现在都专门安排1-2个人接单把我们传播易当成她主要销售渠道了。个销售1个月的工资，就能抵10个销售1年的销售业绩，老板您，可以算一下这个成本帐我们交易平台每天10wip的流量，有11万的广告主注册。广告采购页面直接显示您的电话和q，直接与客户联系，省去中间环节而且我们的平台的特点是客户源丰富 价格便宜  零佣金 你能否考虑入驻我们的平台呢'
+print(removeHtmlTag(removeEmoj(removeTagContent(text,['url','img']))))

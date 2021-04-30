@@ -6,7 +6,6 @@ from flask_module.log_manage import ManageLog as mlog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_task import *
-from flask_module.robot_blueprint.Task.cluster_analysis_task import cluster_analysis_task
 from flask_module.robot_blueprint.constants import RobotConstants
 
 
@@ -413,9 +412,3 @@ def get_knowledge_by_robot():
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
 
     return return_success(queryData)
-
-
-@robot_blueprint.route('/manager/testTask', methods=['POST'])
-def test_schedule_job_task():
-    cluster_analysis_task()
-    return return_success("调用成功")

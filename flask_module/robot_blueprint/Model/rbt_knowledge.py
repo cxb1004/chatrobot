@@ -21,10 +21,10 @@ def getKnowledgeDataForClusterAnalysis(app=None, sess=None, rbt_id=None):
 
         if pid == '0' or pid is None:
             # 如果是标准问题, 则添加<question, id>
-            knowledge_lib = {q, id}
+            knowledge_lib[q] = id
         else:
             # 如果是相似问题, 则添加<question, parent_id>
-            knowledge_lib = {q, pid}
+            knowledge_lib[q] = pid
     return knowledge_lib
 
 

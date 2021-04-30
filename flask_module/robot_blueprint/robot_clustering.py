@@ -21,9 +21,15 @@ from flask_module.log_cluster import ClusterLog as clusterLog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_task import *
-# from flask_module.db_utils import *
 from flask_module.robot_blueprint.constants import RobotConstants
 from flask_module.utils import *
+from flask_module.robot_blueprint.Task.cluster_analysis_task import *
+
+
+@robot_blueprint.route('/cluster/testTask', methods=['POST'])
+def test_schedule_job_task():
+    cluster_analysis_task()
+    return return_success("调用成功")
 
 
 def saveDataForCluster(rbt_id, task_id, insert_data):

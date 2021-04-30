@@ -2,6 +2,7 @@ import json
 
 from flask import current_app
 
+from flask_module.corpus_utils import *
 from flask_module.db_utils import *
 from flask_module.log_cluster import ClusterLog
 from flask_module.robot_blueprint.Model.rbt_knowledge import getKnowledgeDataForClusterAnalysis
@@ -45,7 +46,7 @@ def saveClusterResult(task_id=None, rbt_id=None, qid=None, group=None):
     sql = '''INSERT INTO ai_chatrobot.rbt_datamining_result(task_id,rbt_id,knowledge_id,questions,created_at) VALUES(:task_id,:rbt_id,:knowledge_id,:questions,now())'''
     params = {'task_id': task_id, 'rbt_id': rbt_id, 'knowledge_id': qid, 'questions': str(group)}
     executeBySQL(app=current_app, sql=sql, params=params)
-    clog.debug("标准问题[{}]下的分析结果数据保存成功")
+    clog.debug("标准问题[{}]下的分析结果数据保存成功".format(qid))
 
 
 def cluster_by_task(task_id, rbt_id, params):
@@ -78,7 +79,7 @@ def cluster_by_task(task_id, rbt_id, params):
         if isNullOrBlank(group_num):
             group_num = DEFALUT_GROUP_NUM
     except Exception as ex:
-        clog.error_ex("聚类分析参数解析出错，采用默认参数！")
+        clog.warn("聚类分析参数解析出错，采用默认参数！")
         sim_idx = DEFALUT_SIM_IDX
         group_num = DEFALUT_GROUP_NUM
     clog.info("聚类分析任务的参数设置完毕：sim_idx：{}   group_num：{}".format(sim_idx, group_num))
@@ -87,7 +88,7 @@ def cluster_by_task(task_id, rbt_id, params):
     knowledge_lib = getKnowledgeDataForClusterAnalysis(app=current_app, rbt_id=rbt_id)
     # 获得问题文本
     knowledges = knowledge_lib.keys()
-    clog.info("获取机器人[{}]的知识库数据{}条".format(knowledges.__len__()))
+    clog.info("获取机器人[{}]的知识库数据{}条".format(rbt_id, knowledges.__len__()))
 
     # 3.2 获得需要分析的预料数据corpus(合并多个任务的corpus)
     sql = '''select content from rbt_datamining_data where task_id in (select task_id from rbt_task where type=:type and status=:status and rbt_id=:rbt_id) '''
@@ -96,7 +97,11 @@ def cluster_by_task(task_id, rbt_id, params):
     queryData = queryBySQL(app=current_app, sql=sql, params=params)
     corpus = []
     for data in queryData:
-        corpus.append(data.get('content'))
+        c = data.get('content')
+        # 对数据进行清晰，去除html标签、去除表情符号、去除特殊字符
+        c = removeHtmlTag(removeEmoj(removeTagContent(c,['img','url'])))
+        if not isNullOrBlank(c):
+            corpus.append(c)
     # 去重
     corpus = list(dict.fromkeys(corpus))
     clog.info("去重之后，待分析的数据有{}条".format(corpus.__len__()))
@@ -118,20 +123,33 @@ def cluster_by_task(task_id, rbt_id, params):
         # 所有知识库里的语句比较完之后，存入一次数据库  （保存之前先删除数据，这样可以重复运行）
         clog.info("开始结合知识库进行聚类分析...")
         qid_sentences = {}
+        # 循环语料库
         for sentence in corpus:
-            # 判断这句话尚未经过知识库的比较
-            max_qid = 0.0
+            clog.debug('文本：{}'.format(sentence))
+            # 记录这句话和知识库里的哪一句最相似
+            max_qid = None
+            max_value = 0.0
+            # 循环知识库
             for knowledge in knowledges:
                 simValue = simUtil.getSimilarityIndex(knowledge, sentence)
-                if simValue >= max_qid and simValue >= sim_idx:
-                    max_qid = knowledge_lib.get(knowledge)
 
-            if qid_sentences.get(max_qid) is None:
-                # 如果还没有这个问题ID，就新增一个{qid:[句1]}
-                qid_sentences[max_qid] = [sentence]
+                if simValue >= sim_idx and simValue >= max_value:
+                    # 根据知识获得知识ID
+                    max_qid = knowledge_lib.get(knowledge)
+                    max_value = simValue
+                    clog.debug("更新最相似值{}  最相似度知识是：{} ".format(simValue, knowledge))
+
+            # 完成对知识库的扫描之后，max_qid就是最贴近的知识，max_value就是最贴近的相似度
+            if max_qid is None:
+                # 如果这句话和知识库里的数据，没有一个是达到相似指标的，就跳过：
+                continue
             else:
-                # 如果已经有这个问题ID，就追加一个{qid:[句1,句2]}
-                qid_sentences[max_qid].append(sentence)
+                if qid_sentences.get(max_qid) is None:
+                    # 如果还没有这个问题ID，就新增一个{qid:[句1]}
+                    qid_sentences[max_qid] = [sentence]
+                else:
+                    # 如果已经有这个问题ID，就追加一个{qid:[句1,句2]}
+                    qid_sentences[max_qid].append(sentence)
 
         # 筛选出分组数量超过阀值的组
         for qid in qid_sentences.keys():
@@ -144,7 +162,7 @@ def cluster_by_task(task_id, rbt_id, params):
                 clog.info("移除已分析的数据，剩余{}条数据待分析...".format(corpus.__len__()))
         clog.info("结合知识库的聚类分析完成")
 
-    # 3.5 剩余的corpus里的数据依次进行两两比较
+    # TODO  TEST ! 3.5 剩余的corpus里的数据依次进行两两比较
     clog.info("开始进行两两聚类分析，分析数量为{}条".format(corpus.__len__()))
     group_sentences = []
     # 如果待分析数据数量，不足以分成一组，结束分析
