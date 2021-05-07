@@ -12,21 +12,18 @@
 具备容错，如果部分数据分析失败，直接跳过
 5、随时更新数据挖掘任务的状态，允许王宁宁发起查询状态和挖掘结果
 """
-import json
 
-from flask import request, current_app
+from flask import request
 
-from flask_module.corpus_utils import *
 from flask_module.log_cluster import ClusterLog as clusterLog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_task import *
-from flask_module.robot_blueprint.constants import RobotConstants
-from flask_module.utils import *
 from flask_module.robot_blueprint.Task.cluster_analysis_task import *
+from flask_module.robot_blueprint.constants import RobotConstants
 
 
-@robot_blueprint.route('/cluster/testTask', methods=['POST'])
+@robot_blueprint.route('/cluster/clusterTask', methods=['POST'])
 def test_schedule_job_task():
     cluster_analysis_task()
     return return_success("调用成功")

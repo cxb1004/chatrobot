@@ -1,26 +1,27 @@
 from apscheduler.jobstores.memory import MemoryJobStore
 
-from flask_module.robot_blueprint.Task.cluster_analysis_task import cluster_analysis_task
+from flask_module.robot_blueprint.Task.call_scheduled_task import call_cluster_analysis_task
 from flask_module.utils import heart_beat_job
 
 
 class FlaskScheduleConfig:
     # 配置定时任务
     JOBS = [
-        {
-            'id': 'heart_beat_job',
-            'func': heart_beat_job,
-            'args': None,
-            'trigger': 'interval',
-            'seconds': 60 * 5  # 本任务为每5分钟执行一次
-        }
-        # , {
-        #     'id': 'cluster_analysis_task',
-        #     'func': cluster_analysis_task,
+        # {
+        #     'id': 'heart_beat_job',
+        #     'func': heart_beat_job,
         #     'args': None,
         #     'trigger': 'interval',
-        #     'seconds': 60  # 本任务为每5分钟执行一次
+        #     'seconds': 60 * 5  # 本任务为每5分钟执行一次
         # }
+        # ,
+        {
+            'id': 'cluster_analysis_task',
+            'func': call_cluster_analysis_task,
+            'args': None,
+            'trigger': 'interval',
+            'seconds': 30  # 本任务为每5分钟执行一次
+        }
         # 可以在下面添加自定义任务
         # ,{
         #     'id': 'scheduler_dev_queueing',

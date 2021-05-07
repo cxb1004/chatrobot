@@ -99,7 +99,7 @@ def cluster_by_task(task_id, rbt_id, params):
     for data in queryData:
         c = data.get('content')
         # 对数据进行清晰，去除html标签、去除表情符号、去除特殊字符
-        c = removeHtmlTag(removeEmoj(removeTagContent(c,['img','url'])))
+        c = removeHtmlTag(removeEmoj(removeTagContent(c, ['img', 'url'])))
         if not isNullOrBlank(c):
             corpus.append(c)
     # 去重
@@ -162,23 +162,27 @@ def cluster_by_task(task_id, rbt_id, params):
                 clog.info("移除已分析的数据，剩余{}条数据待分析...".format(corpus.__len__()))
         clog.info("结合知识库的聚类分析完成")
 
-    # TODO  TEST ! 3.5 剩余的corpus里的数据依次进行两两比较
+    # 3.5 剩余的corpus里的数据依次进行两两比较
     clog.info("开始进行两两聚类分析，分析数量为{}条".format(corpus.__len__()))
     group_sentences = []
     # 如果待分析数据数量，不足以分成一组，结束分析
     while corpus.__len__() >= group_num:
         # 重置数组，并且从语料库的第一个句子作为第一个元素
         group_sentences = [corpus[0]]
+        clog.debug("剩余语料库数量{}".format(corpus.__len__()))
+        clog.debug(group_sentences)
         # 从第二条记录开始做比较
         for item in corpus[1:]:
             simValue = simUtil.getSimilarityIndex(group_sentences[0], item)
             if simValue >= sim_idx:
                 group_sentences.append(item)
+                clog.debug(group_sentences)
         # 如果分组数量满足阀值，保存数据，并从语料库里面移除这部分数据
         if group_sentences.__len__() >= group_num:
             saveClusterResult(task_id, rbt_id, qid=None, group=group_sentences)
-            # 从待分析数据中，移除已分析的数据，保留未分组或分组数量不足的数据
-            corpus = [item for item in corpus if item not in group]
+
+        # 从待分析数据中，移除已分析的数据，保留未分组或分组数量不足的数据
+        corpus = [item for item in corpus if item not in group_sentences]
     clog.info("两两聚类分析完成")
 
 
@@ -207,11 +211,6 @@ def cluster_analysis_task():
     2、根据设计，出错的话就进入下一个循环，无需事务控制
     :return:
     """
-
-    # conn = db.get_engine(current_app)
-    # Session = sessionmaker(bind=conn)
-    # session = Session()
-    # session.begin()
     # 1、从rbt_task里面获得所有未开始运行的聚类分析任务，以task_id为单位
     # 不已机器人为分析单位的原因在于，王宁宁需要根据task_id来查询任务执行情况，并由此查询结果数据
     # 如果以机器人为单位，数据查询和后期清理数据都会有问题
@@ -242,7 +241,7 @@ def cluster_analysis_task():
                 params = task.get("params")
                 clog.info("聚类分析任务{}执行中: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
-                cluster_by_task(task_id, rbt_id, params)
+                # cluster_by_task(task_id, rbt_id, params)
 
                 clog.info("聚类分析任务{}执行完毕: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
@@ -259,3 +258,4 @@ def cluster_analysis_task():
                 continue
 
     clog.info("聚类分析定时任务完成...")
+
