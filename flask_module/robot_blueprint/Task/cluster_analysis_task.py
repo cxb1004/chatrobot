@@ -242,7 +242,7 @@ def cluster_analysis_task():
                 params = task.get("params")
                 clog.info("聚类分析任务{}执行中: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
-                # cluster_by_task(task_id, rbt_id, params)
+                cluster_by_task(task_id, rbt_id, params)
 
                 clog.info("聚类分析任务{}执行完毕: companyID={}  rbtID={}".format(task_id, company_id, rbt_id))
 
