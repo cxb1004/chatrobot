@@ -15,12 +15,13 @@ class FlaskScheduleConfig:
         #     'seconds': 60 * 5  # 本任务为每5分钟执行一次
         # }
         # ,
+        # 聚类分析任务，每10分钟执行一次，任务之前执行的数据不同，互不冲突
         {
             'id': 'cluster_analysis_task',
             'func': call_cluster_analysis_task,
             'args': None,
             'trigger': 'interval',
-            'seconds': 30  # 本任务为每5分钟执行一次
+            'seconds': 600  # 单位秒，本任务为每10分钟执行一次
         }
         # 可以在下面添加自定义任务
         # ,{
