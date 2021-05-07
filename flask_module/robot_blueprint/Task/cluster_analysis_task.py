@@ -11,7 +11,6 @@ from flask_module.textSimilarity import CosSim
 from flask_module.utils import *
 
 clog = ClusterLog()
-clog.info("聚类分析定时任务开始...")
 
 # 相似度比较的阀值
 DEFALUT_SIM_IDX = 0.8
@@ -211,6 +210,8 @@ def cluster_analysis_task():
     2、根据设计，出错的话就进入下一个循环，无需事务控制
     :return:
     """
+    clog.info("聚类分析定时任务开始...")
+
     # 1、从rbt_task里面获得所有未开始运行的聚类分析任务，以task_id为单位
     # 不已机器人为分析单位的原因在于，王宁宁需要根据task_id来查询任务执行情况，并由此查询结果数据
     # 如果以机器人为单位，数据查询和后期清理数据都会有问题
@@ -257,5 +258,5 @@ def cluster_analysis_task():
                 # 继续下个机器人
                 continue
 
-    clog.info("聚类分析定时任务完成...")
+    clog.info("聚类分析定时任务完成")
 
