@@ -124,7 +124,7 @@ def cluster_by_task(task_id, rbt_id, params):
         qid_sentences = {}
         # 循环语料库
         for sentence in corpus:
-            clog.debug('文本：{}'.format(sentence))
+            # clog.debug('文本：{}'.format(sentence))
             # 记录这句话和知识库里的哪一句最相似
             max_qid = None
             max_value = 0.0
@@ -136,7 +136,7 @@ def cluster_by_task(task_id, rbt_id, params):
                     # 根据知识获得知识ID
                     max_qid = knowledge_lib.get(knowledge)
                     max_value = simValue
-                    clog.debug("更新最相似值{}  最相似度知识是：{} ".format(simValue, knowledge))
+                    # clog.debug("更新最相似值{}  最相似度知识是：{} ".format(simValue, knowledge))
 
             # 完成对知识库的扫描之后，max_qid就是最贴近的知识，max_value就是最贴近的相似度
             if max_qid is None:
@@ -168,8 +168,8 @@ def cluster_by_task(task_id, rbt_id, params):
     while corpus.__len__() >= group_num:
         # 重置数组，并且从语料库的第一个句子作为第一个元素
         group_sentences = [corpus[0]]
-        clog.debug("剩余语料库数量{}".format(corpus.__len__()))
-        clog.debug(group_sentences)
+        # clog.debug("剩余语料库数量{}".format(corpus.__len__()))
+        # clog.debug(group_sentences)
         # 从第二条记录开始做比较
         for item in corpus[1:]:
             simValue = simUtil.getSimilarityIndex(group_sentences[0], item)
