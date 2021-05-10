@@ -18,7 +18,7 @@ class FlaskScheduleConfig:
         }
         # TODO 正式上线的时候，需要开启
         , {
-            'id': 'cluster_analysis_task',
+            'id': 'knowledge_update_task',
             'func': call_knowledge_update_task,
             'args': None,
             'trigger': 'interval',
