@@ -95,10 +95,6 @@ def calculatePageParameters(all_records, per_page, current_page):
     return max_page, start, offset
 
 
-def heart_beat_job():
-    print(datetime.datetime.now())
-
-
 def getRobotUnloadTime(period=None):
     """
     生成机器人的自动卸载时间

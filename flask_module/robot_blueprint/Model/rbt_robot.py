@@ -99,7 +99,7 @@ class Robot:
             for sentence in self.__corpus.keys():
                 temp_dict = {}
                 simValue = simUtil.getSimilarityIndex(question, sentence)
-                print("相似值：{}   比较语句：{}".format(simValue, sentence))
+                # print("相似值：{}   比较语句：{}".format(simValue, sentence))
                 if simValue >= self.__sim_idx:
                     temp_dict['question_id'] = self.__corpus.get(sentence)
                     temp_dict['sim_value'] = simValue
@@ -134,7 +134,7 @@ class Robot:
         """
         answer_list.sort(key=lambda i: i['sim_value'], reverse=True)
         # TODO 这里的5，可以从配置文件里面读取
-        if answer_list.__len__()>5:
+        if answer_list.__len__() > 5:
             return answer_list[:5]
         else:
             return answer_list
@@ -160,3 +160,7 @@ class Robot:
 
     def getIndustryRobotID(self):
         return self.__industry_robot_id
+
+    def updateKnowledge(self, rbt_id):
+        self.__corpus, self.__knowledge = getKnowledgeDataForAnswer(app=current_app, rbt_id=rbt_id)
+

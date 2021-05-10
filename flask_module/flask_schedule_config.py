@@ -1,27 +1,28 @@
 from apscheduler.jobstores.memory import MemoryJobStore
 
 from flask_module.robot_blueprint.Task.call_scheduled_task import call_cluster_analysis_task
-from flask_module.utils import heart_beat_job
+from flask_module.robot_blueprint.Task.call_scheduled_task import call_knowledge_update_task
 
 
 class FlaskScheduleConfig:
     # 配置定时任务
     JOBS = [
-        # {
-        #     'id': 'heart_beat_job',
-        #     'func': heart_beat_job,
-        #     'args': None,
-        #     'trigger': 'interval',
-        #     'seconds': 60 * 5  # 本任务为每5分钟执行一次
-        # }
-        # ,
         # 聚类分析任务，每10分钟执行一次，任务之前执行的数据不同，互不冲突
+        # TODO 正式上线的时候，需要开启
         {
             'id': 'cluster_analysis_task',
             'func': call_cluster_analysis_task,
             'args': None,
             'trigger': 'interval',
             'seconds': 600  # 单位秒，本任务为每10分钟执行一次
+        }
+        # TODO 正式上线的时候，需要开启
+        , {
+            'id': 'cluster_analysis_task',
+            'func': call_knowledge_update_task,
+            'args': None,
+            'trigger': 'interval',
+            'seconds': 60  # 单位秒，本任务为每10分钟执行一次
         }
         # 可以在下面添加自定义任务
         # ,{

@@ -5,6 +5,7 @@ from flask_module.log_service import ServiceLog
 from flask_module.result_json import *
 from flask_module.robot_blueprint import robot_blueprint
 from flask_module.robot_blueprint.Model.rbt_robot import Robot
+from flask_module.robot_blueprint.Model.rbt_task import RobotTask
 from flask_module.textSimilarity import CosSim
 from flask_module.utils import *
 
@@ -162,8 +163,12 @@ def inf_answer():
         errMsg = "企业机器人{}调用失败，请联系系统管理员！".format(rbt_id)
         return return_fail(errMsg)
 
-    # 4、使用企业机器人实例cRobot进行answer回答，分别获得前n个知识库匹配的数据，以及模型判断的结果
-    c_answers = cRobot.answer(simUtil, question)
+    # 4、使用企业机器人实例cRobot进行answer回答，分别获得前n个知识库匹配的数据，以及模型判断的结果】、
+    try:
+        c_answers = cRobot.answer(simUtil, question)
+    except Exception as ex:
+        slog.error_ex("机器人回答出错！")
+        c_answers = None
 
     # 5、获得企业机器人cRobot的所属行业机器人ID
     industry_robot_id = cRobot.getIndustryRobotID()
@@ -236,10 +241,68 @@ def unload_robot_manualy():
         return return_fail("机器人[{}]不存在列表中！".format(rbt_id))
 
 
-@robot_blueprint.route('/service/updateRobot', methods=['POST'])
-def refresh_robot():
+def updateKnowledgeByRobot(rbt_id):
+    robot = ROBOT_LIST.get(rbt_id)
+    if robot is None:
+        slog.info("机器人实例不在线，无需更新知识库")
+    else:
+        robot.updateKnowledge(rbt_id)
+        ROBOT_LIST[rbt_id] = robot
+        slog.info("机器人知识库更新成功：{}".format(rbt_id))
+
+
+@robot_blueprint.route('/service/knowledgeUpdateTask', methods=['POST'])
+def knowledge_update_task():
     """
-    更新机器人
+    更新机器人知识库
+    目前只做知识库的更新，模型的更新放在另外一个模块里面
+    1、查询rbt_task是否有需要更新知识库的机器人数据，有就获取任务，并设置任务状态为1
+    2、查询当前机器人服务中，是否有这个机器人，如果没有就跳过
+    （机器人启动的时候，会自动载入最新的知识库，所以无需在这里做）
+    3、如果有，就读取这个机器人的实例，并更新其中知识库的数据
+    4、执行完成之后，把这个任务状态设置为100
     :return:
     """
-    pass
+    slog.info("开始更新机器人知识库...")
+    # 1、查询rbt_task是否有需要更新知识库的机器人数据，有就获取任务，并设置任务状态为1
+    sql = '''select task_id,rbt_id,params from rbt_task where status=:status and type=:type order by created_at asc'''
+    params = {'status': RobotTask.STATUS_INIT, 'type': RobotTask.TYPE_SYNC_KNOWLEDGE.get('type')}
+    queryData = queryBySQL(app=current_app, sql=sql, params=params)
+
+    if queryData.__len__() == 0:
+        slog.info("没有更新知识库的任务，无需更新机器人")
+    else:
+        # 获得需要操作的任务列表
+        taskIDs_in_str = ''
+        for data in queryData:
+            taskIDs_in_str = taskIDs_in_str + "'" + data.get('task_id') + "',"
+        taskIDs_in_str = taskIDs_in_str[0:taskIDs_in_str.__len__() - 1]
+
+        # 锁定当前任务
+        sql = '''update rbt_task set status=:status where task_id in ({}) '''.format(taskIDs_in_str)
+        params = {'status': RobotTask.STATUS_IN_PROCESS}
+        executeBySQL(app=current_app, sql=sql, params=params)
+
+        for data in queryData:
+            task_id = data.get('task_id')
+            rbt_id = data.get('rbt_id')
+            params = data.get('params')
+
+            try:
+                # 完成单个机器人的知识库更新
+                updateKnowledgeByRobot(rbt_id)
+
+                # 更新完成之后，任务状态更新
+                sql = '''update rbt_task set status=:status where task_id=:task_id'''
+                params = {'status': RobotTask.STATUS_FINISH, 'task_id': task_id}
+                executeBySQL(app=current_app, sql=sql, params=params)
+            except Exception as ex:
+                slog.error_ex("机器人更新知识库失败：[rbt_id]")
+                # 更新失败之后，任务状态更新
+                sql = '''update rbt_task set status=:status where task_id=:task_id'''
+                params = {'status': RobotTask.STATUS_FINISH_EX, 'task_id': task_id}
+                executeBySQL(app=current_app, sql=sql, params=params)
+
+                continue
+        slog.info("机器人知识库更新完毕")
+    return return_success("机器人知识库更新完毕")
