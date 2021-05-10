@@ -241,7 +241,29 @@ def unload_robot_manualy():
         return return_fail("机器人[{}]不存在列表中！".format(rbt_id))
 
 
+@robot_blueprint.route('/service/AutoUnloadRobot', methods=['POST'])
+def unload_robot_automatically():
+    """
+    自动卸载机器人
+    :return:
+    """
+    slog.info("准备开始清理僵尸机器人...")
+    remove_robot_id = []
+    for robot_id, robot in ROBOT_LIST.items():
+        if robot.isExpired():
+            remove_robot_id.append(robot_id)
+    for i in remove_robot_id:
+        ROBOT_LIST.pop(i)
+        slog.info('机器人[{}]被清理'.format(robot_id))
+    slog.info("僵尸机器人清理完毕")
+    return return_success("僵尸机器人清理完毕")
+
 def updateKnowledgeByRobot(rbt_id):
+    """
+    更新单个机器人的语料库
+    :param rbt_id:
+    :return:
+    """
     robot = ROBOT_LIST.get(rbt_id)
     if robot is None:
         slog.info("机器人实例不在线，无需更新知识库")

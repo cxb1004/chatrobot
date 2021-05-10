@@ -1,7 +1,6 @@
 from apscheduler.jobstores.memory import MemoryJobStore
 
-from flask_module.robot_blueprint.Task.call_scheduled_task import call_cluster_analysis_task
-from flask_module.robot_blueprint.Task.call_scheduled_task import call_knowledge_update_task
+from flask_module.robot_blueprint.Task.call_scheduled_task import *
 
 
 class FlaskScheduleConfig:
@@ -14,7 +13,7 @@ class FlaskScheduleConfig:
             'func': call_cluster_analysis_task,
             'args': None,
             'trigger': 'interval',
-            'seconds': 600  # 单位秒，本任务为每10分钟执行一次
+            'seconds': 3600  # 单位秒，本任务为每1小时执行一次
         }
         # TODO 正式上线的时候，需要开启
         , {
@@ -22,7 +21,14 @@ class FlaskScheduleConfig:
             'func': call_knowledge_update_task,
             'args': None,
             'trigger': 'interval',
-            'seconds': 60  # 单位秒，本任务为每10分钟执行一次
+            'seconds': 300  # 单位秒，本任务为每5分钟执行一次
+        },
+        {
+            'id': 'auto_unload_robot_task',
+            'func': call_auto_unload_robot_task,
+            'args': None,
+            'trigger': 'interval',
+            'seconds': 3600  # 单位秒，本任务为每1小时执行一次
         }
         # 可以在下面添加自定义任务
         # ,{

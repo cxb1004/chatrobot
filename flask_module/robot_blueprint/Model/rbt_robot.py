@@ -8,7 +8,7 @@ from flask_module.utils import *
 class Robot:
     # 机器人自动卸载时间，默认是3600秒（1小时）
     # TODO 这个配置可以写入到配置文件中
-    ROBOT_UNLOAD_PERIOD = 3600
+    ROBOT_UNLOAD_PERIOD = 60
 
     def __init__(self):
         # 机器人ID
@@ -88,6 +88,7 @@ class Robot:
         :param question:
         :return:
         """
+        self.__unloaded_at = getRobotUnloadTime(Robot.ROBOT_UNLOAD_PERIOD)
         if (self.__corpus.__len__() == 0 or self.__corpus is None) and self.__model is None:
             # 5、如果既没有知识库，又没有模型，抛出异常
             raise Exception("机器人无知识库，无模型，无法回答！")
