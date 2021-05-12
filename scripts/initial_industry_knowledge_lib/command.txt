@@ -1,0 +1,26 @@
+
+进入项目目录
+[root@71baomu-test-new scripts]# cd /opt/aibot/scripts/initial_industry_knowledge_lib
+
+创建虚拟环境
+[root@71baomu-test-new initial_industry_knowledge_lib]# python36 -m venv /opt/aibot/scripts/initial_industry_knowledge_lib/venv
+
+
+进入虚拟环境
+[root@71baomu-test-new initial_industry_knowledge_lib]# source /opt/aibot/scripts/initial_industry_knowledge_lib/venv/bin/activate
+
+
+根据requirements.txt安装类包
+(venv) [root@71baomu-test-new initial_industry_knowledge_lib]# pip3 requirements.txt
+
+修改虚拟环境的默认编码
+export LC_ALL="en_US.utf8"
+
+运行文件
+nohup python36 initial_industry_knowledge_lib.py >/dev/null 2>&1 &
+
+查看进程
+ps -ef | grep initial_industry_knowledge_lib
+
+退出虚拟环境
+(venv) [root@71baomu-test-new initial_industry_knowledge_lib]# deactivate

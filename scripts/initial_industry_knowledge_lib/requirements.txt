@@ -1,0 +1,8 @@
+greenlet==1.1.0
+importlib-metadata==4.0.1
+jieba==0.42.1
+numpy==1.19.5
+PyMySQL==1.0.2
+SQLAlchemy==1.4.15
+typing-extensions==3.10.0.0
+zipp==3.4.1

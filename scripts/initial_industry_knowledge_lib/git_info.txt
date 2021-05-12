@@ -1,0 +1,3 @@
+git@git.local:python/initial_industry_knowledge_lib.git
+
+http://dev.gitlab.1shen7.com/python/initial_industry_knowledge_lib.git
