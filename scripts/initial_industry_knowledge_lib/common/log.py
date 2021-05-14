@@ -11,13 +11,13 @@ from common.config import Config
 class Log:
     __default_log = None
 
-    def __init__(self, logPath):
+    def __init__(self):
         config = Config()
 
         __DEFAULT_LOGGER_NAME = config.get_value('log', 'default_logger_name')
         __DEFAULT_LOGGER_FORMAT = config.get_value('log', 'default_logger_format')
         __DEFAULT_LOGGER_LEVEL = logging.getLevelName(config.get_value('log', 'default_logger_level'))
-        __LOGGER_LOCATION = logPath
+        __LOGGER_LOCATION = config.get_value('log', 'default_logger_logfile')
         __LOGGER_WHEN = config.get_value('log', 'default_logger_when')
         __LOGGER_INTERVAL = int(config.get_value('log', 'default_logger_interval'))
         __LOGGER_BACKUP_COUNT = int(config.get_value('log', 'default_logger_backup_count'))
